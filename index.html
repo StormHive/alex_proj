@@ -394,13 +394,6 @@
           </div>
 
           <div>
-            <label for="pop_id">Period of Performance:</label>
-            <select id="pop_ids" name="pop_id" required>
-              <option value="">Select Period of Performance</option>
-            </select>
-          </div>
-
-          <div>
             <label for="work_year">Work Year:</label>
             <input
               type="number"
@@ -479,27 +472,6 @@
             option.textContent = contract.contract_name;
             contractSelect.appendChild(option);
           });
-        });
-
-      document
-        .getElementById("contracts")
-        .addEventListener("change", function () {
-          const contractId = this.value;
-          if (contractId) {
-            fetch(`/get_period_of_performance/${contractId}`)
-              .then((response) => response.json())
-              .then((data) => {
-                const popSelect = document.getElementById("pop_ids");
-                popSelect.innerHTML =
-                  '<option value="">Select Period of Performance</option>';
-                data.forEach((pop) => {
-                  const option = document.createElement("option");
-                  option.value = pop.pop_id;
-                  option.textContent = `POP ${pop.pop_id}`;
-                  popSelect.appendChild(option);
-                });
-              });
-          }
         });
 
       const openPopupButton = document.getElementById("openPopupButton");

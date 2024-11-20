@@ -444,7 +444,7 @@ def add_employee():
 
     salary_data = {
         "StartDate": request.form['StartDate'],
-        "EndDate": request.form.get('EndDate') if request.form.get('EndDate') != "" else None,
+        "EndDate": None,
         "DirectRate": request.form['DirectRate']
     }
 
