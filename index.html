@@ -385,7 +385,7 @@
     <div id="popupOverlay" class="overlay">
       <div id="popupForm" class="popup">
         <h2>Enter Details</h2>
-        <form action="/generate_file" method="POST">
+        <form id="generateFileForm">
           <div>
             <label for="contract">Contract:</label>
             <select id="contracts" name="contract" required>
@@ -453,6 +453,9 @@
           <button type="submit">Run Command</button>
           <button type="button" id="closePopupButton">Close</button>
         </form>
+        <div id="message"></div>
+
+        <div id="loading" style="display: none">Loading...</div>
       </div>
     </div>
     <script>
@@ -514,6 +517,42 @@
       popupOverlay.addEventListener("click", function (e) {
         if (e.target === popupOverlay) {
           popupOverlay.classList.remove("active");
+        }
+      });
+      const form = document.getElementById("generateFileForm");
+      const messageDiv = document.getElementById("message");
+      const loadingDiv = document.getElementById("loading");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        loadingDiv.style.display = "block";
+        messageDiv.innerHTML = "";
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+          const response = await fetch("/generate_file", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+          });
+
+          loadingDiv.style.display = "none";
+
+          const result = await response.json();
+          if (response.ok) {
+            messageDiv.innerHTML = `<div style="color: green;">${result.message}</div>`;
+          } else {
+            messageDiv.innerHTML = `<div style="color: red;">Error: ${result.message}</div>`;
+          }
+        } catch (error) {
+          loadingDiv.style.display = "none";
+
+          messageDiv.innerHTML = `<div style="color: red;">Unexpected error occurred: ${error.message}</div>`;
         }
       });
     </script>

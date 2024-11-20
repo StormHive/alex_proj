@@ -32,7 +32,6 @@ params = urllib.parse.quote_plus(
     'connection timeout=30;'
 )
 
-# Create engine
 db_uri = f"mssql+pyodbc:///?odbc_connect={params}"
 engine = create_engine(db_uri)
 
@@ -171,6 +170,7 @@ def get_hrs_budget_headers(db_uri, pop_id):
     try:
         engine = create_engine(db_uri)
         with engine.connect() as conn:
+            print(pop_id, "POP_Id")
             header_query = """EXEC GetHrsBudgetSheetHeaders @pop_id=?"""
             data = pd.read_sql(header_query, conn, params=(pop_id,))
         return data

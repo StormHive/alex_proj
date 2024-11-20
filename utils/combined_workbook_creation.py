@@ -15,6 +15,7 @@ from dateutil.relativedelta import relativedelta
 
 def create_combined_workbook(contract_id, last_month_str, work_year, filename, dc_start_year, dc_end_year):
     try:
+        print(f"Got these parameters in create_combined_workbook function, Contract ID: {contract_id}, Work Year: {work_year}, DC start year: {dc_start_year}, DC end year: {dc_end_year}, File Name: {filename}, Last Month: {last_month_str}")
         last_month = helper_functions.convert_to_datetime(last_month_str)
         pop_data = helper_functions.get_unique_pop_ids()
         header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
@@ -140,6 +141,7 @@ def create_combined_workbook(contract_id, last_month_str, work_year, filename, d
 
     except Exception as e:
         print(f"Error during workbook creation: {e}")
+        raise Exception(e)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate Excel file from database data.")

@@ -491,25 +491,31 @@ def add_employee_form():
 
 @app.route('/generate_file', methods=['POST'])
 def generate_file():
-
-    contract_id = request.form.get("contract", None)
-    pop_id = request.form.get("pop_id", None)
-    work_year = request.form.get("work_year", 2024)
-    dc_start_year = request.form.get("dc_start_year", 2023)
-    dc_end_year = request.form.get("dc_end_year", 2027)
-    file_name = request.form.get("filename", "Combined_spreadsheet.xlsx")
-    last_month = request.form.get("last_month", "08/2024")
+    data = request.json
+   
+    contract_id = int(data.get("contract", None))
+    pop_id = data.get("pop_id", None)
+    work_year = data.get("work_year", 2024)
+    dc_start_year = int(data.get("dc_start_year", 2023))
+    dc_end_year = int(data.get("dc_end_year", 2027))
+    file_name = data.get("filename", "Combined_spreadsheet.xlsx")
+    last_month = data.get("last_month", "08/2024")
     
-    create_combined_workbook(
-        contract_id=contract_id, 
-        last_month_str=last_month,
-        work_year=work_year,
-        filename=file_name,
-        dc_start_year=dc_start_year,
-        dc_end_year=dc_end_year
-    )
+    print(f"Passing these parameters to script to generate spreadsheet Contract ID: {contract_id}, Work Year: {work_year}, DC start year: {dc_start_year}, DC end year: {dc_end_year}, File Name: {file_name}, Last Month: {last_month}")
+    try:
+        create_combined_workbook(
+            contract_id=contract_id, 
+            last_month_str=last_month,
+            work_year=work_year,
+            filename=file_name,
+            dc_start_year=dc_start_year,
+            dc_end_year=dc_end_year
+        )
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"An Error occured {e}"}), 500
+        
 
-    return redirect('/')
+    return jsonify({"status": "success", "message": "File Generated successfully"})
         
 
 
