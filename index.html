@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Work Availability UI</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .container {
+        width: 80%;
+        margin: 0 auto;
+      }
+      .selection {
+        margin-bottom: 20px;
+      }
+      select,
+      input[type="number"] {
+        width: 100%;
+        padding: 5px;
+        box-sizing: border-box;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+        border: 1px solid;
+      }
+      .buttons {
+        display: flex;
+        gap: 10px;
+      }
+
+      .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+
+      .popup {
+        background: white;
+        padding: 20px;
+        border-radius: 5px;
+        width: 50%;
+        max-width: 600px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        z-index: 1001;
+      }
+      .popup div {
+        margin: 30px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .popup div input {
+        width: 300px;
+      }
+      .popup div select {
+        width: 300px;
+      }
+
+      .overlay.active {
+        display: flex;
+      }
+    </style>
+    <script>
+      async function fetchPeriodOfPerformance() {
+        const contractId = document.getElementById("contract").value;
+        const popDropdown = document.getElementById("period_of_performance");
+        popDropdown.innerHTML =
+          '<option value="">Select a Period of Performance</option>';
+        document.getElementById("period_of_performance").disabled = false;
+        document.getElementById("month").disabled = true;
+        document.getElementById("employee").disabled = true;
+        document.getElementById("availability").disabled = true;
+        document.getElementById("job").disabled = true;
+        document.getElementById("labor_category").disabled = true;
+
+        if (contractId) {
+          const response = await fetch(
+            `/get_period_of_performance/${contractId}`
+          );
+          const data = await response.json();
+          data.forEach((item) => {
+            const option = document.createElement("option");
+            option.value = item.pop_id;
+            option.text = `Pop_ID: ${item.pop_id}`;
+            popDropdown.appendChild(option);
+          });
+        }
+      }
+
+      async function fetchMonths() {
+        const popId = document.getElementById("period_of_performance").value;
+        const monthDropdown = document.getElementById("month");
+        monthDropdown.innerHTML = '<option value="">Select a Month</option>';
+        monthDropdown.disabled = false;
+        document.getElementById("employee").disabled = true;
+        document.getElementById("availability").disabled = true;
+        document.getElementById("job").disabled = true;
+        document.getElementById("labor_category").disabled = true;
+
+        if (popId) {
+          const response = await fetch(`/get_months/${popId}`);
+          const months = await response.json();
+          months.forEach((item) => {
+            const option = document.createElement("option");
+            option.value = item.date;
+            option.text = item.month;
+            monthDropdown.appendChild(option);
+          });
+        }
+      }
+
+      async function fetchEmployees() {
+        const employeeDropdown = document.getElementById("employee");
+        employeeDropdown.innerHTML =
+          '<option value="">Select an Employee</option>';
+        employeeDropdown.disabled = false;
+
+        const response = await fetch("/get_employees");
+        const employees = await response.json();
+        employees.forEach((employee) => {
+          const option = document.createElement("option");
+          option.value = employee.employee_id;
+          option.text = employee.employeename;
+          employeeDropdown.appendChild(option);
+        });
+      }
+
+      async function fetchHours() {
+        const contractId = document.getElementById("contract").value;
+        const popId = document.getElementById("period_of_performance").value;
+        const month = document.getElementById("month").value;
+        const employeeId = document.getElementById("employee").value;
+        const availabilityDropdown = document.getElementById("availability");
+        const jobDropdown = document.getElementById("job");
+        const laborCategoryDropdown = document.getElementById("labor_category");
+
+        if (contractId && popId && month && employeeId) {
+          const response = await fetch(
+            `/get_hours/${contractId}/${popId}/${month}/${employeeId}`
+          );
+          const data = await response.json();
+
+          availabilityDropdown.innerHTML = "";
+          data.forEach((item) => {
+            const option = document.createElement("option");
+            option.value = item.availablehours;
+            option.text = `${item.availablehours} hours`;
+            availabilityDropdown.appendChild(option);
+          });
+
+          availabilityDropdown.disabled = false;
+
+          if (data.length > 0) {
+            const jobsResponse = await fetch(
+              `/get_job_for_update/${employeeId}/${month}`
+            );
+            const jobs = await jobsResponse.json();
+
+            jobDropdown.innerHTML = '<option value="">Select a Job</option>';
+            jobs.forEach((job) => {
+              const option = document.createElement("option");
+              option.value = job.job_id;
+              option.text = `Job ID: ${job.job_id}`;
+              jobDropdown.appendChild(option);
+            });
+            jobDropdown.disabled = false;
+
+            const laborCategoryResponse = await fetch(
+              `/get_labor_category_for_update/${employeeId}/${month}`
+            );
+            const laborCategories = await laborCategoryResponse.json();
+
+            laborCategoryDropdown.innerHTML =
+              '<option value="">Select a Labor Category</option>';
+            laborCategories.forEach((category) => {
+              const option = document.createElement("option");
+              option.value = category.laborcategory_id;
+              option.text = `Labor Category ID: ${category.laborcategory_id}`;
+              laborCategoryDropdown.appendChild(option);
+            });
+            laborCategoryDropdown.disabled = false;
+          } else {
+            jobDropdown.innerHTML = '<option value="">Select a Job</option>';
+            laborCategoryDropdown.innerHTML =
+              '<option value="">Select a Labor Category</option>';
+            await fetchJobs();
+            await fetchLaborCategories();
+            jobDropdown.disabled = false;
+            laborCategoryDropdown.disabled = false;
+          }
+        } else {
+          availabilityDropdown.disabled = true;
+          jobDropdown.disabled = true;
+          laborCategoryDropdown.disabled = true;
+        }
+      }
+
+      async function fetchJobs() {
+        const response = await fetch("/get_jobs");
+        const jobs = await response.json();
+        const jobDropdown = document.getElementById("job");
+        jobDropdown.innerHTML = '<option value="">Select a Job</option>';
+
+        jobs.forEach((job) => {
+          const option = document.createElement("option");
+          option.value = job.job_id;
+          option.text = `Job ID: ${job.job_id}`;
+          jobDropdown.appendChild(option);
+        });
+      }
+
+      async function fetchLaborCategories() {
+        const response = await fetch("/get_labor_categories");
+        const laborCategories = await response.json();
+        const laborCategoryDropdown = document.getElementById("labor_category");
+        laborCategoryDropdown.innerHTML =
+          '<option value="">Select a Labor Category</option>';
+
+        laborCategories.forEach((category) => {
+          const option = document.createElement("option");
+          option.value = category.laborcategory_id;
+          option.text = `Labor Category ID: ${category.laborcategory_id}`;
+          laborCategoryDropdown.appendChild(option);
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        fetchJobs();
+        fetchLaborCategories();
+      });
+
+      function enableEdit() {
+        document.getElementById("adjusted_hours").disabled = false;
+      }
+
+      function cancelEdit() {
+        document.getElementById("adjusted_hours").disabled = true;
+      }
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Work Availability UI</h2>
+
+      {% if message %}
+      <p style="color: green">{{ message }}</p>
+      {% endif %}
+
+      <form method="POST" action="/update_availability">
+        <input type="hidden" id="pop_id" name="period_of_performance" />
+        <input type="hidden" id="employee_id" name="employee" />
+
+        <div class="selection">
+          <label for="contract">Select Contract:</label>
+          <select
+            id="contract"
+            name="contract"
+            onchange="fetchPeriodOfPerformance()"
+          >
+            <option value="">Select a contract</option>
+            {% for contract in contracts %}
+            <option value="{{ contract }}">Contract_ID: {{ contract }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="selection">
+          <label for="period_of_performance"
+            >Select Period of Performance (PoP):</label
+          >
+          <select
+            id="period_of_performance"
+            name="period_of_performance"
+            onchange="fetchMonths(); fetchEmployees()"
+          >
+            <option value="">Select a Period of Performance</option>
+          </select>
+        </div>
+
+        <div class="selection">
+          <label for="month">Select Month:</label>
+          <select id="month" name="month" onchange="fetchHours()">
+            <option value="">Select a Month</option>
+          </select>
+        </div>
+
+        <div class="selection">
+          <label for="employee">Select Employee:</label>
+          <select id="employee" name="employee" onchange="fetchHours()">
+            <option value="">Select an Employee</option>
+          </select>
+        </div>
+
+        <div class="selection">
+          <label for="availability">Select Availability:</label>
+          <select id="availability" name="availability"></select>
+        </div>
+
+        <div class="selection">
+          <label for="job">Select Job:</label>
+          <select id="job" name="job" required>
+            <option value="">Select a Job</option>
+          </select>
+        </div>
+
+        <div class="selection">
+          <label for="labor_category">Select Labor Category:</label>
+          <select id="labor_category" name="labor_category" required>
+            <option value="">Select a Labor Category</option>
+          </select>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Adjusted Hours</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <input
+                  type="number"
+                  id="adjusted_hours"
+                  name="adjusted_hours"
+                  disabled
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="buttons">
+          <button type="button" onclick="enableEdit()">Edit</button>
+          <button type="submit" name="action" value="update">Update</button>
+          <button type="submit" name="action" value="save">Save</button>
+          <button type="button" onclick="cancelEdit()">Cancel</button>
+          <button type="submit" name="action" value="remove_override">
+            Remove Override
+          </button>
+        </div>
+      </form>
+      <div style="margin-top: 1rem">
+        <a href="/view_availability" style="text-decoration: none">
+          <button name="action" value="remove_override">
+            View Work Availability
+          </button>
+        </a>
+        <a href="/view_availability_override" style="text-decoration: none">
+          <button name="action" value="remove_override">
+            View Work Availability Override
+          </button>
+        </a>
+        <a href="/employees" style="text-decoration: none">
+          <button name="action" value="remove_override">View Employees</button>
+        </a>
+        <a href="/add_employee_form" style="text-decoration: none">
+          <button name="action" value="remove_override">Add Employees</button>
+        </a>
+        <a href="/add_work_availability" style="text-decoration: none">
+          <button name="action" value="remove_override">
+            Add Work Availability
+          </button>
+        </a>
+
+        <button name="action" id="openPopupButton">Generate File</button>
+      </div>
+    </div>
+    <div id="popupOverlay" class="overlay">
+      <div id="popupForm" class="popup">
+        <h2>Enter Details</h2>
+        <form action="/generate_file" method="POST">
+          <div>
+            <label for="contract">Contract:</label>
+            <select id="contracts" name="contract" required>
+              <option value="">Select a Contract</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="pop_id">Period of Performance:</label>
+            <select id="pop_ids" name="pop_id" required>
+              <option value="">Select Period of Performance</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="work_year">Work Year:</label>
+            <input
+              type="number"
+              id="work_year"
+              name="work_year"
+              value="2024"
+              required
+            />
+          </div>
+          <div>
+            <label for="filename">File Name</label>
+            <input
+              type="text"
+              id="filename"
+              name="filename"
+              value="Combined_spreadsheet.xlsx"
+              required
+            />
+          </div>
+          <div>
+            <label for="last_month">Last Month</label>
+            <input
+              type="text"
+              id="last_month"
+              value="08/2024"
+              name="last_month"
+              required
+            />
+          </div>
+          <div>
+            <label for="dc_start_year">DC Start Year:</label>
+            <input
+              type="number"
+              id="dc_start_year"
+              name="dc_start_year"
+              required
+              value="2023"
+            />
+          </div>
+          <div>
+            <label for="dc_end_year">DC End Year:</label>
+            <input
+              type="number"
+              id="dc_end_year"
+              value="2027"
+              name="dc_end_year"
+              required
+            />
+          </div>
+          <button type="submit">Run Command</button>
+          <button type="button" id="closePopupButton">Close</button>
+        </form>
+      </div>
+    </div>
+    <script>
+      document
+        .getElementById("period_of_performance")
+        .addEventListener("change", function () {
+          document.getElementById("pop_id").value = this.value;
+        });
+      document
+        .getElementById("employee")
+        .addEventListener("change", function () {
+          document.getElementById("employee_id").value = this.value;
+        });
+      fetch("/get_contracts")
+        .then((response) => response.json())
+        .then((data) => {
+          const contractSelect = document.getElementById("contracts");
+          data.data.forEach((contract) => {
+            const option = document.createElement("option");
+            option.value = contract.contract_id;
+            option.textContent = contract.contract_name;
+            contractSelect.appendChild(option);
+          });
+        });
+
+      document
+        .getElementById("contracts")
+        .addEventListener("change", function () {
+          const contractId = this.value;
+          if (contractId) {
+            fetch(`/get_period_of_performance/${contractId}`)
+              .then((response) => response.json())
+              .then((data) => {
+                const popSelect = document.getElementById("pop_ids");
+                popSelect.innerHTML =
+                  '<option value="">Select Period of Performance</option>';
+                data.forEach((pop) => {
+                  const option = document.createElement("option");
+                  option.value = pop.pop_id;
+                  option.textContent = `POP ${pop.pop_id}`;
+                  popSelect.appendChild(option);
+                });
+              });
+          }
+        });
+
+      const openPopupButton = document.getElementById("openPopupButton");
+      const popupOverlay = document.getElementById("popupOverlay");
+      const closePopupButton = document.getElementById("closePopupButton");
+
+      openPopupButton.addEventListener("click", function () {
+        popupOverlay.classList.add("active");
+      });
+
+      closePopupButton.addEventListener("click", function () {
+        popupOverlay.classList.remove("active");
+      });
+
+      popupOverlay.addEventListener("click", function (e) {
+        if (e.target === popupOverlay) {
+          popupOverlay.classList.remove("active");
+        }
+      });
+    </script>
+  </body>
+</html>

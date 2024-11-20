@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>View Employee Data</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .container {
+        width: 80%;
+        margin: 0 auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+        border: 1px solid #ccc;
+      }
+      th {
+        background-color: #f2f2f2;
+        cursor: pointer;
+      }
+      h2 {
+        text-align: center;
+      }
+      .filters {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .filters label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .filters input {
+        padding: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Employee Records</h2>
+
+      <!-- Filter section -->
+      <div class="filters">
+        <label>
+          First Name:
+          <input
+            type="text"
+            id="filter-first-name"
+            onkeyup="filterTable()"
+            placeholder="Search First Name"
+          />
+        </label>
+        <label>
+          Last Name:
+          <input
+            type="text"
+            id="filter-last-name"
+            onkeyup="filterTable()"
+            placeholder="Search Last Name"
+          />
+        </label>
+        <label>
+          Email:
+          <input
+            type="text"
+            id="filter-email"
+            onkeyup="filterTable()"
+            placeholder="Search Email"
+          />
+        </label>
+      </div>
+
+      {% if data %}
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th>Employee ID</th>
+            <th>ID From Jamis</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Email</th>
+            <th>Is TBD</th>
+            <th>Company ID</th>
+            <th>Note for TBD</th>
+            <th>Salary Start Date</th>
+            <th>Salary End Date</th>
+            <th>Direct Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in data %}
+          <tr>
+            <td>{{ row.employee_id }}</td>
+            <td>{{ row.IdFromJamis }}</td>
+            <td>{{ row.FirstName }}</td>
+            <td>{{ row.LastName }}</td>
+            <td>{{ row.Email }}</td>
+            <td>{{ row.IsTbd }}</td>
+            <td>{{ row.company_id }}</td>
+            <td>{{ row.NoteForTbd }}</td>
+            <td>{{ row.StartDate if row.StartDate else "N/A" }}</td>
+            <td>{{ row.EndDate if row.EndDate else "N/A" }}</td>
+            <td>{{ row.DirectRate if row.DirectRate else "N/A" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p>No employee data available.</p>
+      {% endif %}
+    </div>
+
+    <script>
+      let sortOrder = {}; // Track the sort order for each column
+
+      function filterTable() {
+        const firstNameFilter = document
+          .getElementById("filter-first-name")
+          .value.toLowerCase();
+        const lastNameFilter = document
+          .getElementById("filter-last-name")
+          .value.toLowerCase();
+        const emailFilter = document
+          .getElementById("filter-email")
+          .value.toLowerCase();
+
+        const rows = document
+          .getElementById("dataTable")
+          .getElementsByTagName("tbody")[0]
+          .getElementsByTagName("tr");
+
+        for (let i = 0; i < rows.length; i++) {
+          const cells = rows[i].getElementsByTagName("td");
+
+          const firstName = cells[2].textContent.toLowerCase();
+          const lastName = cells[3].textContent.toLowerCase();
+          const email = cells[4].textContent.toLowerCase();
+
+          const firstNameMatch = firstName.includes(firstNameFilter);
+          const lastNameMatch = lastName.includes(lastNameFilter);
+          const emailMatch = email.includes(emailFilter);
+
+          rows[i].style.display =
+            firstNameMatch && lastNameMatch && emailMatch ? "" : "none";
+        }
+      }
+
+      function sortTable(columnIndex) {
+        const table = document.getElementById("dataTable");
+        const tbody = table.tBodies[0];
+        const rows = Array.from(tbody.getElementsByTagName("tr"));
+
+        sortOrder[columnIndex] = !sortOrder[columnIndex];
+
+        rows.sort((a, b) => {
+          const cellA = a
+            .getElementsByTagName("td")
+            [columnIndex].textContent.trim()
+            .toLowerCase();
+          const cellB = b
+            .getElementsByTagName("td")
+            [columnIndex].textContent.trim()
+            .toLowerCase();
+
+          if (!isNaN(cellA) && !isNaN(cellB)) {
+            return sortOrder[columnIndex] ? cellA - cellB : cellB - cellA;
+          }
+          return sortOrder[columnIndex]
+            ? cellA.localeCompare(cellB)
+            : cellB.localeCompare(cellA);
+        });
+
+        rows.forEach((row) => tbody.appendChild(row));
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>View Work Availability</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .container {
+        width: 80%;
+        margin: 0 auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+        border: 1px solid #ccc;
+        cursor: pointer;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+      h2 {
+        text-align: center;
+      }
+      .edit-button {
+        background-color: #4caf50;
+        color: white;
+        padding: 5px 10px;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+      }
+      .edit-button:hover {
+        background-color: #45a049;
+      }
+      .filters {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .filters label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .filters input {
+        padding: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Work Availability Records</h2>
+
+      <!-- Side-by-side filters section -->
+      <div class="filters">
+        <label>
+          Employee Name:
+          <input
+            type="text"
+            id="filter-employee"
+            onkeyup="filterTable()"
+            placeholder="Search Employee"
+          />
+        </label>
+        <label>
+          Labor Category:
+          <input
+            type="text"
+            id="filter-labor-category"
+            onkeyup="filterTable()"
+            placeholder="Search Labor Category"
+          />
+        </label>
+        <label>
+          Job Name:
+          <input
+            type="text"
+            id="filter-job"
+            onkeyup="filterTable()"
+            placeholder="Search Job"
+          />
+        </label>
+        <label>
+          Contract Name:
+          <input
+            type="text"
+            id="filter-contract"
+            onkeyup="filterTable()"
+            placeholder="Search Contract"
+          />
+        </label>
+      </div>
+
+      {% if data %}
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th onclick="sortTable(0)">Employee Name</th>
+            <th onclick="sortTable(1)">Labor Category Name</th>
+            <th onclick="sortTable(2)">Job Name</th>
+            <th onclick="sortTable(3)">Contract Name</th>
+            <th onclick="sortTable(4)">Pop Start Date</th>
+            <th onclick="sortTable(5)">Pop End Date</th>
+            <th onclick="sortTable(6)">Available Hours</th>
+            <th onclick="sortTable(7)">Work Hours Percentage</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in data %}
+          <tr id="row-{{ row.workavailability_id }}">
+            <td id="employee-{{ row.workavailability_id }}">
+              {{ row.FirstName }} {{ row.LastName }}
+            </td>
+            <td id="laborCategory-{{ row.workavailability_id }}">
+              {{ row.LaborCategoryName }}
+            </td>
+            <td id="job-{{ row.workavailability_id }}">{{ row.JobName }}</td>
+            <td id="contract-{{ row.workavailability_id }}">
+              {{ row.ContractName }}
+            </td>
+            <td id="startDate-{{ row.workavailability_id }}">
+              {{ row.StartDate }}
+            </td>
+            <td id="endDate-{{ row.workavailability_id }}">
+              {{ row.EndDate }}
+            </td>
+            <td id="availableHours-{{ row.workavailability_id }}">
+              {{ row.AvailableHours }}
+            </td>
+            <td id="workPercentage-{{ row.workavailability_id }}">
+              {{ "%.2f"|format(row.WorkHoursPercentage * 100) }}%
+            </td>
+            <td>
+              <button
+                class="edit-button"
+                onclick="editRow('{{ row.workavailability_id }}')"
+              >
+                Edit
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p>No data available.</p>
+      {% endif %}
+    </div>
+
+    <script>
+      let sortOrder = {}; // Track the sort order for each column
+
+      function filterTable() {
+        const employeeFilter = document
+          .getElementById("filter-employee")
+          .value.toLowerCase();
+        const laborCategoryFilter = document
+          .getElementById("filter-labor-category")
+          .value.toLowerCase();
+        const jobFilter = document
+          .getElementById("filter-job")
+          .value.toLowerCase();
+        const contractFilter = document
+          .getElementById("filter-contract")
+          .value.toLowerCase();
+
+        const rows = document
+          .getElementById("dataTable")
+          .getElementsByTagName("tbody")[0]
+          .getElementsByTagName("tr");
+
+        for (let i = 0; i < rows.length; i++) {
+          const cells = rows[i].getElementsByTagName("td");
+
+          const employeeName = cells[0].textContent.toLowerCase();
+          const laborCategory = cells[1].textContent.toLowerCase();
+          const jobName = cells[2].textContent.toLowerCase();
+          const contractName = cells[3].textContent.toLowerCase();
+
+          const employeeMatch = employeeName.includes(employeeFilter);
+          const laborCategoryMatch =
+            laborCategory.includes(laborCategoryFilter);
+          const jobMatch = jobName.includes(jobFilter);
+          const contractMatch = contractName.includes(contractFilter);
+
+          rows[i].style.display =
+            employeeMatch && laborCategoryMatch && jobMatch && contractMatch
+              ? ""
+              : "none";
+        }
+      }
+
+      function editRow(rowId) {
+        const workPercentageCell = document.getElementById(
+          `workPercentage-${rowId}`
+        );
+        const availableHoursCell = document.getElementById(
+          `availableHours-${rowId}`
+        );
+        const currentHours = availableHoursCell.textContent.trim();
+        const currentWorkPercentage = workPercentageCell.textContent
+          .trim()
+          .slice(0, -1);
+        console.log(currentWorkPercentage[-1]);
+
+        availableHoursCell.innerHTML = `<input type="number" value="${currentHours}" id="availableHours-input-${rowId}" )">`;
+        workPercentageCell.innerHTML = `<input type="number" value="${currentWorkPercentage}" id="workPercentage-input-${rowId}")">`;
+
+        const editButton = document.querySelector(`#row-${rowId} .edit-button`);
+        editButton.textContent = "Save";
+        editButton.onclick = function () {
+          saveRow(rowId);
+        };
+      }
+
+      function saveRow(rowId) {
+        const availableHoursInput = document.getElementById(
+          `availableHours-input-${rowId}`
+        );
+        const availableHoursCell = document.getElementById(
+          `availableHours-${rowId}`
+        );
+        const workPercentageCell = document.getElementById(
+          `workPercentage-${rowId}`
+        );
+        const workPercentageInnput = document.getElementById(
+          `workPercentage-input-${rowId}`
+        );
+
+        const newAvailableHours = availableHoursInput.value;
+        const newWorkPercentage = workPercentageInnput.value;
+
+        availableHoursCell.textContent = newAvailableHours;
+        workPercentageCell.textContent = `${newWorkPercentage}%`;
+
+        console.log("Sending updated available hours:", newAvailableHours); // Log for debugging
+
+        fetch(`/update_work_availability/${rowId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            available_hours: newAvailableHours,
+            work_hours_percentage: newWorkPercentage / 100,
+          }), // Check key name matches backend
+        })
+          .then((response) => {
+            console.log("Response status:", response.status); // Log status for debugging
+            return response.json();
+          })
+          .then((data) => {
+            console.log("Response data:", data); // Log full response for debugging
+            if (data.status === "success") {
+              alert("Available Hours updated successfully.");
+            } else {
+              alert("Failed to update Available Hours.");
+              console.error("Server error:", data);
+            }
+          })
+          .catch((error) => {
+            console.error("Error updating Available Hours:", error);
+            alert("An error occurred while updating.");
+          });
+
+        const editButton = document.querySelector(`#row-${rowId} .edit-button`);
+        editButton.textContent = "Edit";
+        editButton.onclick = function () {
+          editRow(rowId);
+        };
+      }
+
+      function sortTable(columnIndex) {
+        const table = document.getElementById("dataTable");
+        const tbody = table.tBodies[0];
+        const rows = Array.from(tbody.getElementsByTagName("tr"));
+
+        // Toggle sort order for the column
+        sortOrder[columnIndex] = !sortOrder[columnIndex];
+
+        rows.sort((a, b) => {
+          const cellA = a
+            .getElementsByTagName("td")
+            [columnIndex].textContent.trim()
+            .toLowerCase();
+          const cellB = b
+            .getElementsByTagName("td")
+            [columnIndex].textContent.trim()
+            .toLowerCase();
+
+          if (!isNaN(cellA) && !isNaN(cellB)) {
+            return sortOrder[columnIndex] ? cellA - cellB : cellB - cellA;
+          }
+          return sortOrder[columnIndex]
+            ? cellA.localeCompare(cellB)
+            : cellB.localeCompare(cellA);
+        });
+
+        // Append sorted rows back to the tbody
+        rows.forEach((row) => tbody.appendChild(row));
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add Work Availability</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .container {
+        max-width: 80%;
+        margin: 0 auto;
+      }
+      form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+      label {
+        font-weight: bold;
+      }
+      select,
+      input[type="number"] {
+        width: 100%;
+        padding: 8px;
+        margin-top: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      button {
+        width: 100px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Add Work Availability</h2>
+      <form
+        id="workAvailabilityForm"
+        action="/add_work_availability"
+        method="POST"
+      >
+        <div>
+          <label for="contract">Contract:</label>
+          <select id="contract" name="contract_id" required>
+            <option value="">Select Contract</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="pop">Period of Performance (POP):</label>
+          <select id="pop" name="pop_id" required>
+            <option value="">Select Period of Performance</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="employee">Employee:</label>
+          <select id="employee" name="employee_id" required>
+            <option value="">Select Employee</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="laborCategory">Labor Category:</label>
+          <select id="laborCategory" name="laborcategory_id" required>
+            <option value="">Select Labor Category</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="job">Job:</label>
+          <select id="job" name="job_id" required>
+            <option value="">Select Job</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="availableHours">Available Hours:</label>
+          <input
+            type="number"
+            id="availableHours"
+            name="AvailableHours"
+            value="1880"
+            required
+          />
+        </div>
+
+        <div>
+          <label for="workHoursPercentage">Work Hours Percentage:</label>
+          <input
+            type="number"
+            id="workHoursPercentage"
+            name="WorkHoursPercentage"
+            value="1.0"
+            step="0.01"
+            required
+          />
+        </div>
+
+        <button type="submit">Submit</button>
+      </form>
+    </div>
+
+    <script>
+      fetch("/get_contracts")
+        .then((response) => response.json())
+        .then((data) => {
+          const contractSelect = document.getElementById("contract");
+          if (data.status === "success") {
+            data.data.forEach((contract) => {
+              const option = document.createElement("option");
+              option.value = contract.contract_id;
+              option.textContent = contract.contract_name;
+              contractSelect.appendChild(option);
+            });
+          }
+        });
+
+      document
+        .getElementById("contract")
+        .addEventListener("change", function () {
+          const contractId = this.value;
+          const popSelect = document.getElementById("pop");
+          popSelect.innerHTML =
+            '<option value="">Select Period of Performance</option>';
+          if (contractId) {
+            fetch(`/get_period_of_performance/${contractId}`)
+              .then((response) => response.json())
+              .then((data) => {
+                data.forEach((pop) => {
+                  const option = document.createElement("option");
+                  option.value = pop.pop_id;
+                  option.textContent = `POP ${pop.pop_id}`;
+                  popSelect.appendChild(option);
+                });
+              });
+          }
+        });
+
+      fetch("/get_employees")
+        .then((response) => response.json())
+        .then((data) => {
+          const employeeSelect = document.getElementById("employee");
+          data.forEach((employee) => {
+            const option = document.createElement("option");
+            option.value = employee.employee_id;
+            option.textContent = employee.employeename;
+            employeeSelect.appendChild(option);
+          });
+        });
+
+      fetch("/get_labor_categories")
+        .then((response) => response.json())
+        .then((data) => {
+          const laborCategorySelect = document.getElementById("laborCategory");
+          data.forEach((category) => {
+            const option = document.createElement("option");
+            option.value = category.laborcategory_id;
+            option.textContent = category.Name;
+            laborCategorySelect.appendChild(option);
+          });
+        });
+
+      fetch("/get_jobs")
+        .then((response) => response.json())
+        .then((data) => {
+          const jobSelect = document.getElementById("job");
+          data.forEach((job) => {
+            const option = document.createElement("option");
+            option.value = job.job_id;
+            option.textContent = job.Title;
+            jobSelect.appendChild(option);
+          });
+        });
+    </script>
+  </body>
+</html>

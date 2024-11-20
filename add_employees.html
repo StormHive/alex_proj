@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add New Employee</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .container {
+        width: 80%;
+        margin: 0 auto;
+      }
+      form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+      label {
+        font-weight: bold;
+      }
+      input[type="text"],
+      input[type="email"],
+      input[type="date"],
+      input[type="number"],
+      textarea {
+        width: 100%;
+        padding: 8px;
+        margin-top: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      input[type="checkbox"] {
+        margin-left: 5px;
+      }
+      button {
+        padding: 10px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Add New Employee Information</h2>
+      <form action="/add_employee" method="POST">
+        <div>
+          <label for="IdFromJamis">ID From Jamis:</label>
+          <input
+            type="text"
+            id="IdFromJamis"
+            name="IdFromJamis"
+            placeholder="NULL"
+          />
+        </div>
+
+        <div>
+          <label for="FirstName">First Name:</label>
+          <input type="text" id="FirstName" name="FirstName" required />
+        </div>
+
+        <div>
+          <label for="LastName">Last Name:</label>
+          <input type="text" id="LastName" name="LastName" required />
+        </div>
+
+        <div>
+          <label for="Email">Email:</label>
+          <input type="email" id="Email" name="Email" required />
+        </div>
+
+        <div>
+          <label for="IsTbd">Is TBD:</label>
+          <input type="checkbox" id="IsTbd" name="IsTbd" />
+        </div>
+
+        <div>
+          <label for="company_id">Company ID:</label>
+          <select id="company_id" name="company_id" required>
+            <option value="">Select a Company</option>
+            {% for company in data %}
+            <option value="{{company.company_id}}">
+              {{company.company_name}}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label for="NoteForTbd">Note for TBD:</label>
+          <textarea id="NoteForTbd" name="NoteForTbd" rows="4"></textarea>
+        </div>
+
+        <h2>Add Employee Salary Information</h2>
+        <div>
+          <label for="StartDate">Start Date:</label>
+          <input type="date" id="StartDate" name="StartDate" required />
+        </div>
+
+        <div>
+          <label for="EndDate">End Date:</label>
+          <input type="date" id="EndDate" name="EndDate" />
+        </div>
+
+        <div>
+          <label for="DirectRate">Direct Rate:</label>
+          <input
+            type="number"
+            id="DirectRate"
+            name="DirectRate"
+            step="0.01"
+            required
+          />
+        </div>
+
+        <button type="submit">Add Employee</button>
+      </form>
+    </div>
+  </body>
+</html>
