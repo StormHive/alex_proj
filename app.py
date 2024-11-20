@@ -41,6 +41,18 @@ def index():
     contracts = contracts_df['contract_id'].tolist()
     return render_template('index.html', contracts=contracts)
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if username and password:
+            return redirect("/")
+        else:
+            print("Invalid username or password", "error")
+    
+    return render_template('login.html')
+
 @app.route('/get_period_of_performance/<contract_id>')
 def get_period_of_performance(contract_id):
     query = "select pop_id from dbo.periodofperformance where contract_id = ?"
@@ -494,7 +506,6 @@ def generate_file():
     data = request.json
    
     contract_id = int(data.get("contract", None))
-    pop_id = data.get("pop_id", None)
     work_year = data.get("work_year", 2024)
     dc_start_year = int(data.get("dc_start_year", 2023))
     dc_end_year = int(data.get("dc_end_year", 2027))
