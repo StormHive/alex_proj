@@ -256,7 +256,12 @@
   </head>
   <body>
     <div class="container">
-      <h2>Work Availability UI</h2>
+      <div style="width: 100%; display: flex; justify-content: space-between">
+        <h2>Work Availability UI</h2>
+        <a href="/logout">
+          <button style="height: 30px">Logout</button>
+        </a>
+      </div>
 
       {% if message %}
       <p style="color: green">{{ message }}</p>

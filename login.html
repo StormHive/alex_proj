@@ -80,10 +80,12 @@
   <body>
     <div class="container">
       <h2>Login</h2>
-      {% with messages = get_flashed_messages(with_categories=true) %} {% if
-      messages %} {% for category, message in messages %}
-      <div class="flash-message {{ category }}">{{ message }}</div>
-      {% endfor %} {% endif %} {% endwith %}
+      {% if message %}
+
+      <div style="color: red" class="flash-message {{ category }}">
+        {{ message }}
+      </div>
+      {%endif%}
       <form action="/login" method="POST">
         <label for="username">Username:</label>
         <input type="text" id="username" name="username" required />
