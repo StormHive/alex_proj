@@ -138,6 +138,7 @@ def create_combined_workbook(contract_id, last_month_str, work_year, filename, d
             contract_filename = f"Contract_{contract_id}_Combined_spreadsheet.xlsx"
             wb.save(contract_filename)
             print(f"\nWorkbook for contract_id {contract_id} successfully saved to {contract_filename}\n")
+            return contract_filename
 
     except Exception as e:
         print(f"Error during workbook creation: {e}")

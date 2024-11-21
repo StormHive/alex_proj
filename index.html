@@ -519,16 +519,30 @@
           });
 
           loadingDiv.style.display = "none";
+          const contentType = response.headers.get("Content-Type");
 
-          const result = await response.json();
-          if (response.ok) {
-            messageDiv.innerHTML = `<div style="color: green;">${result.message}</div>`;
+          if (
+            response.ok &&
+            contentType &&
+            contentType.includes(
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+          ) {
+            // Success message
+            messageDiv.innerHTML = `<div style="color: green;">File generated successfully!</div>`;
+
+            // Handle file download
+            const blob = await response.blob();
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = data.filename || "default_filename.xlsx";
+            link.click();
           } else {
+            const result = await response.json();
             messageDiv.innerHTML = `<div style="color: red;">Error: ${result.message}</div>`;
           }
         } catch (error) {
           loadingDiv.style.display = "none";
-
           messageDiv.innerHTML = `<div style="color: red;">Unexpected error occurred: ${error.message}</div>`;
         }
       });
