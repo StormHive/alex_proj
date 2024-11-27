@@ -85,13 +85,12 @@
       <table id="dataTable">
         <thead>
           <tr>
-            <th>Employee ID</th>
             <th>ID From Jamis</th>
             <th>First Name</th>
             <th>Last Name</th>
             <th>Email</th>
             <th>Is TBD</th>
-            <th>Company ID</th>
+            <th>Company Name</th>
             <th>Note for TBD</th>
             <th>Salary Start Date</th>
             <th>Salary End Date</th>
@@ -101,17 +100,18 @@
         <tbody>
           {% for row in data %}
           <tr>
-            <td>{{ row.employee_id }}</td>
             <td>{{ row.IdFromJamis }}</td>
             <td>{{ row.FirstName }}</td>
             <td>{{ row.LastName }}</td>
             <td>{{ row.Email }}</td>
             <td>{{ row.IsTbd }}</td>
-            <td>{{ row.company_id }}</td>
+            <td>{{ row.CompanyName }}</td>
             <td>{{ row.NoteForTbd }}</td>
             <td>{{ row.StartDate if row.StartDate else "N/A" }}</td>
             <td>{{ row.EndDate if row.EndDate else "N/A" }}</td>
-            <td>{{ row.DirectRate if row.DirectRate else "N/A" }}</td>
+            <td>
+              {{ '{:.2f}'.format(row.DirectRate) if row.DirectRate else "N/A" }}
+            </td>
           </tr>
           {% endfor %}
         </tbody>

@@ -502,9 +502,10 @@ def view_employee():
     try:
         with engine.connect() as conn:
             query = """
-                SELECT e.employee_id, e.IdFromJamis, e.FirstName, e.LastName, e.Email, e.IsTbd, e.company_id, e.NoteForTbd,
+                SELECT e.IdFromJamis, e.FirstName, e.LastName, e.Email, e.IsTbd, c.Name AS CompanyName, e.NoteForTbd,
                        es.StartDate, es.EndDate, es.DirectRate
                 FROM Employee e
+                LEFT JOIN Company c ON e.company_id = c.company_id
                 LEFT JOIN EmployeeSalary es ON e.employee_id = es.employee_id
             """
             result = conn.execute(text(query))
