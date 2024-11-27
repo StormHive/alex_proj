@@ -6,6 +6,7 @@ from sqlalchemy import create_engine, text
 import urllib
 import logging
 from datetime import datetime
+from distutils.command.build_scripts import first_line_re
 import pyodbc
 import os
 from flask_bcrypt import Bcrypt
@@ -52,7 +53,7 @@ def save_user_info(first_name, last_name, username, password, role):
     INSERT INTO Users (first_name, last_name, username, password, role)
     VALUES (:first_name, :last_name, :username, :password, :role)
     """
-    
+
     try:
         with engine.connect() as conn:
             conn.execute(
@@ -66,9 +67,12 @@ def save_user_info(first_name, last_name, username, password, role):
                 }
             )
             conn.commit()
-        return {"message": f"User information saved successfully username: {username}, password: {password}"}
+        return f"User information saved successfully username: {username}, password: {password}"
     except Exception as e:
-        return {"error": str(e)}
+        raise Exception(
+            str(e)
+        )
+
 
 @app.route('/')
 @login_required
@@ -553,6 +557,32 @@ def add_employee():
 
     return redirect('/employees')
 
+
+@app.route('/add_user', methods=['POST', 'GET'])
+@login_required
+def add_user():
+    if request.method == "POST":
+        user_data = {
+            "first_name": request.form['first_name'],
+            "last_name": request.form['last_name'],
+            "username": request.form['username'],
+            "password": request.form['password'],  
+            "role": request.form['role']
+        }
+        try: 
+            response = save_user_info(
+                first_name=user_data['first_name'],
+                last_name=user_data['last_name'],
+                username=user_data['username'],
+                password=user_data['password'],
+                role=user_data['role'],
+            )
+            return render_template('create_user.html', message=response)
+        except Exception as e:
+            return render_template('create_user.html', error=f"Error occured in adding user: {e}")
+    return render_template('create_user.html')
+
+
 @app.route('/add_employee_form', methods=['GET'])
 @login_required
 def add_employee_form():
@@ -600,13 +630,15 @@ def generate_file():
     except Exception as e:
         return jsonify({"status": "error", "message": f"An Error occured {e}"}), 500
         
+
+
 @click.command('create-user')
 @with_appcontext
 def create_user():
     """
     Command to create a new user via the command line.
     """
-    result = save_user_info("admin", "admin", "test", "admin", "Administrator")
+    result = save_user_info("admin", "admin", "test2", "admin", "user")
     
     if "error" in result:
         click.echo(f"Error: {result['error']}")
