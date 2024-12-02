@@ -15,22 +15,25 @@ import numpy as np
 from datetime import datetime, timedelta
 import openpyxl.utils.cell as cell_utils
 
+# Database connection settings
 driver = 'ODBC Driver 17 for SQL Server'
-server = '127.0.0.1,1433'  # Or 'localhost'
-database = 'templdb'
-username = 'sa'  
-password = 'VeryStr0ngP@ssw0rd'
+server = 'financeautomationdev.cbnyzmm2kizu.us-east-1.rds.amazonaws.com,1433'
+database = 'FinanceSpreadsheet'
+username = ''
+password = ''
 
+# Build connection string
 params = urllib.parse.quote_plus(
-    f'driver={{{driver}}};'
-    f'server={server};'
-    f'database={database};'
-    f'uid={username};'
-    f'pwd={password};'
-    'encrypt=no;'
-    'trustservercertificate=yes;'
-    'connection timeout=30;'
+    f'DRIVER={{{driver}}};'
+    f'SERVER={server};'
+    f'DATABASE={database};'
+    f'UID={username};'
+    f'PWD={password};'
+    'Encrypt=no;'
+    'TrustServerCertificate=yes;'
+    'Connection Timeout=30;'
 )
+
 
 db_uri = f"mssql+pyodbc:///?odbc_connect={params}"
 engine = create_engine(db_uri)

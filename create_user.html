@@ -48,12 +48,10 @@
       <h2>Create New User</h2>
       <form action="/add_user" method="POST">
         {% if message %}
-
         <div style="color: green" class="flash-message {{ category }}">
           {{ message }}
         </div>
         {%endif%} {% if error %}
-
         <div style="color: red" class="flash-message {{ category }}">
           {{ error }}
         </div>
@@ -77,8 +75,8 @@
         <div>
           <label for="role">Role:</label>
           <select id="role" name="role" required>
-            <option value="admin">Admin</option>
-            <option value="user">User</option>
+            <option value="Administrator">Administrator</option>
+            <option value="Manager">Manager</option>
           </select>
         </div>
         <button type="submit">Create User</button>
