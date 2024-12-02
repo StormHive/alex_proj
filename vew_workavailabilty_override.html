@@ -54,13 +54,21 @@
       .filters input {
         padding: 5px;
       }
+      .sort-arrow.asc::after {
+        content: "↑"; /* Up arrow */
+        color: green;
+      }
+      .sort-arrow.desc::after {
+        content: "↓"; /* Down arrow */
+        color: green;
+      }
     </style>
   </head>
   <body>
     <div class="container">
       <h2>Work Availability Override Records</h2>
 
-      <!--filters section -->
+      <!-- Filters section -->
       <div class="filters">
         <label>
           Employee Name:
@@ -89,18 +97,39 @@
             placeholder="Search Job"
           />
         </label>
+        <a href="/view_availability" style="text-decoration: none">
+          <button name="action" value="remove_override">
+            View Work Availability
+          </button>
+        </a>
+        <a href="/logout">
+          <button style="height: 30px">Logout</button>
+        </a>
       </div>
 
       {% if data %}
       <table id="dataTable">
         <thead>
           <tr>
-            <th onclick="sortTable(0)">Employee Name</th>
-            <th onclick="sortTable(1)">Labor Category Name</th>
-            <th onclick="sortTable(2)">Job Name</th>
-            <th onclick="sortTable(3)">Date Available</th>
-            <th onclick="sortTable(4)">Available Hours</th>
-            <th onclick="sortTable(5)">Work Hours Percentage</th>
+            <th onclick="sortTable(0)">
+              Employee Name <span id="arrow-0" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(1)">
+              Labor Category Name <span id="arrow-1" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(2)">
+              Job Name <span id="arrow-2" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(3)">
+              Date Available <span id="arrow-3" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(4)">
+              Available Hours <span id="arrow-4" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(5)">
+              Work Hours Percentage
+              <span id="arrow-5" class="sort-arrow"></span>
+            </th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -134,7 +163,6 @@
       {% endif %}
     </div>
 
-    <!--sort section -->
     <script>
       let sortOrder = {};
 
@@ -197,19 +225,17 @@
         const workPercentageCell = document.getElementById(
           `workPercentage-${rowId}`
         );
-        const workPercentageInnput = document.getElementById(
+        const workPercentageInput = document.getElementById(
           `workPercentage-input-${rowId}`
         );
         document.getElementById(`availableHours-${rowId}`).textContent =
           availableHours;
-        const newWorkPercentage = workPercentageInnput.value;
+        const newWorkPercentage = workPercentageInput.value;
         workPercentageCell.textContent = `${newWorkPercentage}%`;
-        // Send the updated value to the server
+
         fetch(`/update_work_availability_override/${rowId}`, {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             available_hours: availableHours,
             work_hours_percentage: newWorkPercentage / 100,
@@ -240,6 +266,15 @@
 
         // Toggle sort order for the column
         sortOrder[columnIndex] = !sortOrder[columnIndex];
+
+        // Clear existing arrows
+        document.querySelectorAll(".sort-arrow").forEach((arrow) => {
+          arrow.classList.remove("asc", "desc");
+        });
+
+        // Set arrow for current column
+        const arrow = document.getElementById(`arrow-${columnIndex}`);
+        arrow.classList.add(sortOrder[columnIndex] ? "asc" : "desc");
 
         rows.sort((a, b) => {
           const cellA = a

@@ -3,10 +3,10 @@ import pandas as pd
 from flask import Flask, render_template, jsonify, request, redirect, url_for, session
 from flask import send_from_directory
 from sqlalchemy import create_engine, text
+from distutils.command.build_scripts import first_line_re 
 import urllib
 import logging
 from datetime import datetime
-from distutils.command.build_scripts import first_line_re
 import pyodbc
 import os
 from flask_bcrypt import Bcrypt
@@ -15,8 +15,7 @@ from utils.auth_helpers import login_required
 from flask.cli import with_appcontext
 import click
 
-
-app = Flask(__name__, template_folder='/Users/mac/Downloads/Notepad++ 2')
+app = Flask(__name__, template_folder="/Users/mac/Downloads/Work Availability UI 1 - Copy")
 app.secret_key = 'f1bec6dab3cfac9cd0e06bf99cb7926c33f74e2b65678e8b'
 bcrypt = Bcrypt(app)
 logging.basicConfig(level=logging.DEBUG)
@@ -41,7 +40,6 @@ params = urllib.parse.quote_plus(
 db_uri = f"mssql+pyodbc:///?odbc_connect={params}"
 engine = create_engine(db_uri)
 
-
 def save_user_info(first_name, last_name, username, password, role):
     """
     Saves user information into the database with an encrypted password.
@@ -53,7 +51,7 @@ def save_user_info(first_name, last_name, username, password, role):
     INSERT INTO Users (first_name, last_name, username, password, role)
     VALUES (:first_name, :last_name, :username, :password, :role)
     """
-
+    
     try:
         with engine.connect() as conn:
             conn.execute(
@@ -67,15 +65,12 @@ def save_user_info(first_name, last_name, username, password, role):
                 }
             )
             conn.commit()
-        return f"User information saved successfully username: {username}, password: {password}"
+        return {"message": f"User information saved successfully username: {username}, password: {password}"}
     except Exception as e:
-        raise Exception(
-            str(e)
-        )
-
+        return {"error": str(e)}
 
 @app.route('/')
-@login_required
+@login_required(["Administrator"])
 def index():
     query = "select distinct contract_id from dbo.periodofperformance"
     with engine.connect() as conn:
@@ -97,8 +92,8 @@ def login():
         if not user.empty:
             stored_password = user.iloc[0]['password']
             if bcrypt.check_password_hash(stored_password, password):
-                # Ensure user_id is a standard Python integer, not int64
-                session['user_id'] = int(user.iloc[0]['user_id'])  # Convert to int
+                session['user_id'] = int(user.iloc[0]['user_id'])  
+                session['role'] = str(user.iloc[0]['role'])  
                 return redirect("/")
 
         return render_template('login.html', message="Invalid Username or password")
@@ -113,7 +108,7 @@ def logout():
     return redirect(url_for('login')) 
 
 @app.route('/get_period_of_performance/<contract_id>')
-@login_required
+@login_required(['Manager', "Administrator"])
 def get_period_of_performance(contract_id):
     query = "select pop_id from dbo.periodofperformance where contract_id = ?"
     with engine.connect() as conn:
@@ -122,7 +117,7 @@ def get_period_of_performance(contract_id):
     return jsonify(pop_list)
 
 @app.route('/get_months/<pop_id>')
-@login_required
+@login_required(['Manager', "Administrator"])
 def get_months(pop_id):
     query = "select startdate, enddate from dbo.periodofperformance where pop_id = ?"
     with engine.connect() as conn:
@@ -146,7 +141,7 @@ def get_months(pop_id):
     return jsonify(months)
 
 @app.route('/get_employees')
-@login_required
+@login_required(["Administrator"])
 def get_employees():
     query = """
         select distinct e.employee_id,
@@ -159,7 +154,7 @@ def get_employees():
     return jsonify(employee_list)
 
 @app.route('/get_hours/<contract_id>/<pop_id>/<month>/<employee_id>')
-@login_required
+@login_required(['Manager', "Administrator"])
 def get_hours(contract_id, pop_id, month, employee_id):
     query = """
         select availablehours
@@ -174,7 +169,7 @@ def get_hours(contract_id, pop_id, month, employee_id):
     return jsonify(availability_data)
 
 @app.route('/get_jobs')
-@login_required
+@login_required(["Administrator"])
 def get_jobs():
     query = "select job_id, Title from job"
     with engine.connect() as conn:
@@ -182,7 +177,7 @@ def get_jobs():
     return jsonify(jobs.to_dict(orient='records'))
 
 @app.route('/get_job_for_update/<employee_id>/<month>')
-@login_required
+@login_required(["Administrator"])
 def get_job_for_update(employee_id, month):
     query = """
         select job_id from workavailabilityoverride
@@ -198,7 +193,7 @@ def get_job_for_update(employee_id, month):
     return jsonify(jobs.to_dict(orient='records'))
 
 @app.route('/get_labor_categories')
-@login_required
+@login_required(["Administrator"])
 def get_labor_categories():
     query = "select laborcategory_id, Name from laborcategory"
     with engine.connect() as conn:
@@ -206,7 +201,7 @@ def get_labor_categories():
     return jsonify(labor_categories.to_dict(orient='records'))
 
 @app.route('/get_labor_category_for_update/<employee_id>/<month>')
-@login_required
+@login_required(["Administrator"])
 def get_labor_category_for_update(employee_id, month):
     query = """
         select laborcategory_id from workavailabilityoverride
@@ -222,7 +217,7 @@ def get_labor_category_for_update(employee_id, month):
     return jsonify(labor_categories.to_dict(orient='records'))
 
 @app.route('/update_availability', methods=['POST'])
-@login_required
+@login_required(['Manager', "Administrator"])
 def update_availability():
     action = request.form.get('action')
     contract_id = request.form.get('contract')
@@ -306,7 +301,7 @@ def update_availability():
 
 
 @app.route('/view_availability')
-@login_required
+@login_required(['Manager', "Administrator"])
 def view_availability():
     try:
         with engine.connect() as conn:
@@ -336,7 +331,7 @@ def view_availability():
     return render_template('view_availability.html', data=availability_data)
 
 @app.route('/view_availability_override')
-@login_required
+@login_required(['Manager', "Administrator"])
 def view_availability_override():
     try:
         with engine.connect() as conn:
@@ -385,7 +380,7 @@ def get_contracts():
     return jsonify({"status": "success", "data": contracts_list}), 200
 
 @app.route('/add_work_availability', methods=['POST', "GET"])
-@login_required
+@login_required(["Administrator"])
 def add_work_availability():
     if request.method == "GET":
         return render_template("add_work_availability.html")
@@ -424,10 +419,8 @@ def add_work_availability():
 
     return redirect("/view_availability")
 
-
-
 @app.route('/update_work_availability/<int:record_id>', methods=['PUT'])
-@login_required
+@login_required(['Manager', "Administrator"])
 def update_work_availability(record_id):
     data = request.json
 
@@ -460,7 +453,7 @@ def update_work_availability(record_id):
     return jsonify({"status": "success", "message": "Record updated successfully"})
 
 @app.route('/update_work_availability_override/<int:record_id>', methods=['PUT'])
-@login_required
+@login_required(['Manager', "Administrator"])
 def update_work_availability_override(record_id):
     data = request.json
 
@@ -468,7 +461,7 @@ def update_work_availability_override(record_id):
         available_hours = int(data.get('available_hours'))
         work_percentage = float(data.get('work_hours_percentage'))
         
-        if not all([available_hours, work_percentage]):
+        if available_hours is None or work_percentage is None:
             return jsonify({"status": "error", "message": "All fields are required"}), 400
 
         query = """
@@ -497,16 +490,15 @@ def update_work_availability_override(record_id):
 
 
 @app.route('/employees')
-@login_required
+@login_required(["Administrator"])
 def view_employee():
     try:
         with engine.connect() as conn:
             query = """
-                SELECT e.IdFromJamis, e.FirstName, e.LastName, e.Email, e.IsTbd, c.Name AS CompanyName, e.NoteForTbd,
-                       es.StartDate, es.EndDate, es.DirectRate
-                FROM Employee e
-                LEFT JOIN Company c ON e.company_id = c.company_id
-                LEFT JOIN EmployeeSalary es ON e.employee_id = es.employee_id
+            SELECT e.IdFromJamis, e.FirstName, e.LastName, e.Email, e.IsTbd, c.Name AS CompanyName, e.NoteForTbd,
+                es.StartDate, es.EndDate, es.DirectRate FROM Employee e
+            LEFT JOIN Company c ON e.company_id = c.company_id
+            LEFT JOIN EmployeeSalary es ON e.employee_id = es.employee_id
             """
             result = conn.execute(text(query))
             employees_data = result.fetchall()
@@ -517,7 +509,7 @@ def view_employee():
         
 
 @app.route('/add_employee', methods=['POST'])
-@login_required
+@login_required(["Administrator"])
 def add_employee():
     IdFromJamis = request.form.get('IdFromJamis')
     employee_data = {
@@ -548,7 +540,6 @@ def add_employee():
         if not employee_id:
             return "Error retrieving employee ID", 500
 
-        # Insert data into EmployeeSalary table
         salary_query = """
             INSERT INTO EmployeeSalary (employee_id, StartDate, EndDate, DirectRate)
             VALUES (:employee_id, :StartDate, :EndDate, :DirectRate)
@@ -558,9 +549,8 @@ def add_employee():
 
     return redirect('/employees')
 
-
 @app.route('/add_user', methods=['POST', 'GET'])
-@login_required
+@login_required(["Administrator"])
 def add_user():
     if request.method == "POST":
         user_data = {
@@ -583,9 +573,8 @@ def add_user():
             return render_template('create_user.html', error=f"Error occured in adding user: {e}")
     return render_template('create_user.html')
 
-
 @app.route('/add_employee_form', methods=['GET'])
-@login_required
+@login_required(["Administrator"])
 def add_employee_form():
     with engine.connect() as conn:
         query = """
@@ -604,7 +593,7 @@ def add_employee_form():
 
 
 @app.route('/generate_file', methods=['POST'])
-@login_required
+@login_required(["Administrator"])
 def generate_file():
     data = request.json
    
@@ -613,7 +602,7 @@ def generate_file():
     work_year = data.get("work_year", 2024)
     dc_start_year = int(data.get("dc_start_year", 2023))
     dc_end_year = int(data.get("dc_end_year", 2027))
-    file_name = data.get("filename", "Combined_spreadsheet.xlsx")
+    file_name = f"Contract_{contract_id}_Combined_spreadsheet.xlsx"
     last_month = data.get("last_month", "08/2024")
     
     print(f"Passing these parameters to script to generate spreadsheet Contract ID: {contract_id}, Work Year: {work_year}, DC start year: {dc_start_year}, DC end year: {dc_end_year}, File Name: {file_name}, Last Month: {last_month}")
@@ -630,7 +619,42 @@ def generate_file():
         return send_from_directory("", file_name, as_attachment=True)
     except Exception as e:
         return jsonify({"status": "error", "message": f"An Error occured {e}"}), 500
+    
+@app.route("/list_users", methods=["GET"])
+@login_required(["Administrator"])
+def list_users():
+    with engine.connect() as conn:
+        query = """
+            SELECT user_id, first_name, last_name, username, role FROM Users
+        """
+        result = conn.execute(text(query))
+        users = result.fetchall()
+    return render_template("list_users.html", users=users)
+
+
+@app.route("/delete_user/<int:user_id>", methods=["DELETE"])
+@login_required(["Administrator"])
+def delete_user(user_id):
+    with engine.connect() as conn:
+        query = text("DELETE FROM users WHERE user_id = :id")
+        conn.execute(query, {"id": user_id})
+        conn.commit()
+    return jsonify({"status": "success", "message": "User deleted successfully"})
+
         
+@app.route("/update_user/<int:user_id>", methods=["PUT"])
+@login_required(["Administrator"])
+def update_user(user_id):
+    data = request.json
+    new_role = data.get("role")
+    if not new_role:
+        return jsonify({"status": "error", "message": "Role is required"}), 400
+    
+    with engine.connect() as conn:
+        query = text("UPDATE users SET role = :role WHERE user_id = :id")
+        conn.execute(query, {"role": new_role, "id": user_id})
+        conn.commit()
+    return jsonify({"status": "success", "message": "User role updated successfully"})
 
 
 @click.command('create-user')
@@ -639,7 +663,7 @@ def create_user():
     """
     Command to create a new user via the command line.
     """
-    result = save_user_info("admin", "admin", "test2", "admin", "user")
+    result = save_user_info("admin", "admin", "admin", "admin", "Administrator")
     
     if "error" in result:
         click.echo(f"Error: {result['error']}")

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Users</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .actions button {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>User Management</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>First Name</th>
+        <th>Last Name</th>
+        <th>Username</th>
+        <th>Role</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr id="user-{{ user.user_id }}">
+        <td>{{ user.first_name }}</td>
+        <td>{{ user.last_name }}</td>
+        <td>{{ user.username }}</td>
+        <td>
+          <select id="role-{{ user.user_id }}">
+            <option value="Manager" {% if user.role == 'Manager' %}selected{% endif %}>Manager</option>
+            <option value="Administrator" {% if user.role == 'Administrator' %}selected{% endif %}>Administrator</option>
+          </select>
+        </td>
+        <td class="actions">
+          <button onclick="updateRole(`{{ user.user_id }}`)">Update Role</button>
+          <button onclick="deleteUser(`{{ user.user_id }}`)">Remove User</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <script>
+    function updateRole(userId) {
+      const role = document.getElementById(`role-${userId}`).value;
+      console.log(role)
+      fetch(`/update_user/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role }),
+      })
+        .then(response => response.json())
+        .then(data => {
+          alert(data.message);
+        })
+        .catch(err => {
+          console.error("Error updating role:", err);
+          alert("An error occurred while updating the role.");
+        });
+    }
+
+    function deleteUser(userId) {
+      if (!confirm("Are you sure you want to remove this user?")) return;
+
+      fetch(`/delete_user/${userId}`, {
+        method: "DELETE",
+      })
+        .then(response => response.json())
+        .then(data => {
+          alert(data.message);
+          document.getElementById(`user-${userId}`).remove();
+        })
+        .catch(err => {
+          console.error("Error deleting user:", err);
+          alert("An error occurred while deleting the user.");
+        });
+    }
+  </script>
+</body>
+</html>

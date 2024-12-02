@@ -386,7 +386,9 @@
         <a href="/add_user" style="text-decoration: none">
           <button name="action" value="remove_override">Create User</button>
         </a>
-
+        <a href="/list_users" style="text-decoration: none">
+          <button name="action" value="remove_override">View Users</button>
+        </a>
         <button name="action" id="openPopupButton">Generate File</button>
       </div>
     </div>
@@ -531,23 +533,22 @@
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
           ) {
-            messageDiv.innerHTML = `<div style="color: green;">File generated successfully! Click below to download:</div>`;
+            // Success message
+            messageDiv.innerHTML = `<div style="color: green;">File generated successfully! click below to download</div>`;
 
+            // Handle file download
             const blob = await response.blob();
-
             const downloadLink = document.createElement("button");
             downloadLink.textContent = "Download File";
             downloadLink.style.display = "block";
             downloadLink.style.marginTop = "10px";
             downloadLink.style.height = "30px";
-
             downloadLink.addEventListener("click", () => {
               const link = document.createElement("a");
               link.href = URL.createObjectURL(blob);
               link.download = `Contract_${data.contract}_Combined_spreadsheet.xlsx`;
               link.click();
             });
-
             messageDiv.appendChild(downloadLink);
           } else {
             const result = await response.json();

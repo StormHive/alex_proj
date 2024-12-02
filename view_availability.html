@@ -31,29 +31,25 @@
       h2 {
         text-align: center;
       }
-      .edit-button {
-        background-color: #4caf50;
-        color: white;
-        padding: 5px 10px;
-        border: none;
-        cursor: pointer;
-        text-align: center;
-      }
-      .edit-button:hover {
-        background-color: #45a049;
-      }
+
       .filters {
         display: flex;
+        flex-wrap: nowrap;
         gap: 10px;
         margin-bottom: 10px;
-      }
-      .filters label {
-        display: flex;
         align-items: center;
-        gap: 5px;
       }
+
       .filters input {
         padding: 5px;
+      }
+      .sort-arrow.asc::after {
+        content: "↑";
+        color: green;
+      }
+      .sort-arrow.desc::after {
+        content: "↓";
+        color: green;
       }
     </style>
   </head>
@@ -99,20 +95,45 @@
             placeholder="Search Contract"
           />
         </label>
+        <a href="/view_availability_override" style="text-decoration: none">
+          <button name="action" value="remove_override">
+            View Work Availability Override
+          </button>
+        </a>
+        <a href="/logout">
+          <button style="height: 30px">Logout</button>
+        </a>
       </div>
 
       {% if data %}
       <table id="dataTable">
         <thead>
           <tr>
-            <th onclick="sortTable(0)">Employee Name</th>
-            <th onclick="sortTable(1)">Labor Category Name</th>
-            <th onclick="sortTable(2)">Job Name</th>
-            <th onclick="sortTable(3)">Contract Name</th>
-            <th onclick="sortTable(4)">Pop Start Date</th>
-            <th onclick="sortTable(5)">Pop End Date</th>
-            <th onclick="sortTable(6)">Available Hours</th>
-            <th onclick="sortTable(7)">Work Hours Percentage</th>
+            <th onclick="sortTable(0)">
+              Employee Name <span id="arrow-0" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(1)">
+              Labor Category Name <span id="arrow-1" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(2)">
+              Job Name <span id="arrow-2" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(3)">
+              Contract Name <span id="arrow-3" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(4)">
+              Pop Start Date <span id="arrow-4" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(5)">
+              Pop End Date <span id="arrow-5" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(6)">
+              Available Hours <span id="arrow-6" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(7)">
+              Work Hours Percentage
+              <span id="arrow-7" class="sort-arrow"></span>
+            </th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -159,8 +180,7 @@
     </div>
 
     <script>
-      let sortOrder = {}; // Track the sort order for each column
-
+      let sortOrder = {};
       function filterTable() {
         const employeeFilter = document
           .getElementById("filter-employee")
@@ -287,6 +307,16 @@
         // Toggle sort order for the column
         sortOrder[columnIndex] = !sortOrder[columnIndex];
 
+        // Clear all existing arrows
+        document.querySelectorAll(".sort-arrow").forEach((arrow) => {
+          arrow.classList.remove("asc", "desc");
+        });
+
+        // Add the arrow for the current column
+        const arrow = document.getElementById(`arrow-${columnIndex}`);
+        arrow.classList.add(sortOrder[columnIndex] ? "asc" : "desc");
+
+        // Sort rows
         rows.sort((a, b) => {
           const cellA = a
             .getElementsByTagName("td")
