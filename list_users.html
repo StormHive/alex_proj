@@ -48,6 +48,7 @@
           <select id="role-{{ user.user_id }}">
             <option value="Manager" {% if user.role == 'Manager' %}selected{% endif %}>Manager</option>
             <option value="Administrator" {% if user.role == 'Administrator' %}selected{% endif %}>Administrator</option>
+            <option value="finance_team" {% if user.role == 'finance_team' %}selected{% endif %}>Finance Team</option>
           </select>
         </td>
         <td class="actions">
