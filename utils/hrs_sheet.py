@@ -4,7 +4,6 @@ from datetime import datetime
 import pandas as pd
 import utils.helper_functions as helper_functions
 
-# Create HRS spreadsheet
 def create_HRS_Spreadsheet(wb, headers_data, data, lookup_month_info, last_month_dt, PeriodNumber, engine):
     Sheet_title = f"OY{PeriodNumber} HRS" if PeriodNumber >= 1 else "Base HRS"
     ws = wb.create_sheet(title=Sheet_title)
@@ -33,7 +32,6 @@ def create_HRS_Spreadsheet(wb, headers_data, data, lookup_month_info, last_month
     set_cell(ws, 'D10', "Work Hrs", bold=True)
     set_cell(ws, 'D11', "Percentage", bold=True)
 
-    # POP Dates
     pop_start_date = pd.Timestamp(headers_data['pop'].iloc[0].split(' - ')[0])
     pop_end_date = pd.Timestamp(headers_data['pop'].iloc[0].split(' - ')[1])
     generated_months = list_contract_months(pop_start_date.strftime("%Y-%m-%d"), pop_end_date.strftime("%Y-%m-%d"))
@@ -44,7 +42,6 @@ def create_HRS_Spreadsheet(wb, headers_data, data, lookup_month_info, last_month
         for col in range(1, total_col_index + 1): 
             ws.cell(row=row, column=col).fill = salmon_fill
 
-    # Calculate workdays each month 
     generate_formula, holiday_list = holidays_formula(engine, pop_start_date, pop_end_date)
     for i, month in enumerate(generated_months, start=5):
         month_col_letter = chr(ord('A') + i - 1)
@@ -73,7 +70,6 @@ def create_HRS_Spreadsheet(wb, headers_data, data, lookup_month_info, last_month
     add_footer_rows(ws, start_row, generated_months)
     return wb
 
-# Create HRS employee rows
 def create_HRS_employee_rows(ws, data, lookup_month_info, start_row, generated_months, last_month_dt, headers_data, engine):
     pop_start_date = pd.Timestamp(headers_data['pop'].iloc[0].split(' - ')[0])
     pop_end_date = pd.Timestamp(headers_data['pop'].iloc[0].split(' - ')[1])
@@ -102,7 +98,6 @@ def create_HRS_employee_rows(ws, data, lookup_month_info, start_row, generated_m
                     month_col_letter = chr(ord('A') + month_col - 1)
                     month_datetime = datetime.strptime(month, '%b-%y')
 
-                    # Vacation factor percentage
                     vacation_factor_percentage = lookup_month_info[
                         (lookup_month_info['Month'] == month_datetime.month) &
                         (lookup_month_info['Year'] == month_datetime.year)
@@ -135,7 +130,6 @@ def create_HRS_employee_rows(ws, data, lookup_month_info, start_row, generated_m
 
                 start_row += 1
 
-        # Totals for each row
         total_col_index = len(generated_months) + 5
         total_col_letter = chr(ord('A') + total_col_index - 1)
         for idx in range(12, start_row + 1):
@@ -145,14 +139,12 @@ def create_HRS_employee_rows(ws, data, lookup_month_info, start_row, generated_m
                 set_cell(ws, f'{total_col_letter}{idx}', f"=ROUND(SUM({sum_range}), 1)", bold=True)
                 ws[f'{total_col_letter}{idx}'].number_format = '0.0'
 
-        # Total for each column
         footer_row = start_row + 1
         for i, month in enumerate(generated_months, start=5):
             month_col_letter = chr(ord('A') + i - 1)
             set_cell(ws, f'{month_col_letter}{footer_row}', f"=SUM({month_col_letter}13:{month_col_letter}{start_row})")
             set_cell(ws, f'{total_col_letter}{footer_row}', f"=SUM({total_col_letter}13:{total_col_letter}{start_row})", bold=True)
 
-        # Count HRS sheet values
         count_row = footer_row + 2
         for i, month in enumerate(generated_months, start=5):
             month_col_letter = chr(ord('A') + i - 1)

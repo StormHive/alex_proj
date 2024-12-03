@@ -264,15 +264,12 @@
         const tbody = table.tBodies[0];
         const rows = Array.from(tbody.getElementsByTagName("tr"));
 
-        // Toggle sort order for the column
         sortOrder[columnIndex] = !sortOrder[columnIndex];
 
-        // Clear existing arrows
         document.querySelectorAll(".sort-arrow").forEach((arrow) => {
           arrow.classList.remove("asc", "desc");
         });
 
-        // Set arrow for current column
         const arrow = document.getElementById(`arrow-${columnIndex}`);
         arrow.classList.add(sortOrder[columnIndex] ? "asc" : "desc");
 

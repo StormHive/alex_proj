@@ -264,7 +264,7 @@
         availableHoursCell.textContent = newAvailableHours;
         workPercentageCell.textContent = `${newWorkPercentage}%`;
 
-        console.log("Sending updated available hours:", newAvailableHours); // Log for debugging
+        console.log("Sending updated available hours:", newAvailableHours); 
 
         fetch(`/update_work_availability/${rowId}`, {
           method: "PUT",
@@ -272,14 +272,14 @@
           body: JSON.stringify({
             available_hours: newAvailableHours,
             work_hours_percentage: newWorkPercentage / 100,
-          }), // Check key name matches backend
+          }), 
         })
           .then((response) => {
-            console.log("Response status:", response.status); // Log status for debugging
+            console.log("Response status:", response.status); 
             return response.json();
           })
           .then((data) => {
-            console.log("Response data:", data); // Log full response for debugging
+            console.log("Response data:", data); 
             if (data.status === "success") {
               alert("Available Hours updated successfully.");
             } else {
@@ -304,19 +304,15 @@
         const tbody = table.tBodies[0];
         const rows = Array.from(tbody.getElementsByTagName("tr"));
 
-        // Toggle sort order for the column
         sortOrder[columnIndex] = !sortOrder[columnIndex];
 
-        // Clear all existing arrows
         document.querySelectorAll(".sort-arrow").forEach((arrow) => {
           arrow.classList.remove("asc", "desc");
         });
 
-        // Add the arrow for the current column
         const arrow = document.getElementById(`arrow-${columnIndex}`);
         arrow.classList.add(sortOrder[columnIndex] ? "asc" : "desc");
 
-        // Sort rows
         rows.sort((a, b) => {
           const cellA = a
             .getElementsByTagName("td")
@@ -335,7 +331,6 @@
             : cellB.localeCompare(cellA);
         });
 
-        // Append sorted rows back to the tbody
         rows.forEach((row) => tbody.appendChild(row));
       }
     </script>

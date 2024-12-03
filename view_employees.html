@@ -50,12 +50,24 @@
         margin-left: 5px;
       }
       .asc::after {
-        content: '↑'; 
+        content: "↑";
         color: green;
       }
       .desc::after {
-        content: '↓'; 
+        content: "↓";
         color: green;
+      }
+      .editable {
+        width: 90%;
+        padding: 5px;
+        font-size: 14px;
+      }
+
+      .save-btn,
+      .delete-btn {
+        padding: 5px 10px;
+        margin: 2px;
+        cursor: pointer;
       }
     </style>
   </head>
@@ -107,21 +119,42 @@
       <table id="dataTable">
         <thead>
           <tr>
-            <th onclick="sortTable(0)">ID From Jamis <span id="arrow-0" class="sort-arrow"></span></th>
-            <th onclick="sortTable(1)">First Name <span id="arrow-1" class="sort-arrow"></span></th>
-            <th onclick="sortTable(2)">Last Name <span id="arrow-2" class="sort-arrow"></span></th>
-            <th onclick="sortTable(3)">Email <span id="arrow-3" class="sort-arrow"></span></th>
-            <th onclick="sortTable(4)">Is TBD <span id="arrow-4" class="sort-arrow"></span></th>
-            <th onclick="sortTable(5)">Company Name <span id="arrow-5" class="sort-arrow"></span></th>
-            <th onclick="sortTable(6)">Note for TBD <span id="arrow-6" class="sort-arrow"></span></th>
-            <th onclick="sortTable(7)">Salary Start Date <span id="arrow-7" class="sort-arrow"></span></th>
-            <th onclick="sortTable(8)">Salary End Date <span id="arrow-8" class="sort-arrow"></span></th>
-            <th onclick="sortTable(9)">Direct Rate <span id="arrow-9" class="sort-arrow"></span></th>
-          </tr>          
+            <th onclick="sortTable(0)">
+              ID From Jamis <span id="arrow-0" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(1)">
+              First Name <span id="arrow-1" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(2)">
+              Last Name <span id="arrow-2" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(3)">
+              Email <span id="arrow-3" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(4)">
+              Is TBD <span id="arrow-4" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(5)">
+              Company Name <span id="arrow-5" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(6)">
+              Note for TBD <span id="arrow-6" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(7)">
+              Salary Start Date <span id="arrow-7" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(8)">
+              Salary End Date <span id="arrow-8" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(9)">
+              Direct Rate <span id="arrow-9" class="sort-arrow"></span>
+            </th>
+            <th onclick="sortTable(9)">Action</th>
+          </tr>
         </thead>
         <tbody>
           {% for row in data %}
-          <tr>
+          <tr id="employee-{{ row.employee_id }}">
             <td>{{ row.IdFromJamis }}</td>
             <td>{{ row.FirstName }}</td>
             <td>{{ row.LastName }}</td>
@@ -129,9 +162,39 @@
             <td>{{ row.IsTbd }}</td>
             <td>{{ row.CompanyName }}</td>
             <td>{{ row.NoteForTbd }}</td>
-            <td>{{ row.StartDate if row.StartDate else "N/A" }}</td>
-            <td>{{ row.EndDate if row.EndDate else "N/A" }}</td>
-            <td>{{ '{:.2f}'.format(row.DirectRate) if row.DirectRate else "N/A" }}</td>
+            <td>
+              <input
+                type="date"
+                value="{{ row.StartDate if row.StartDate else '' }}"
+                data-id="{{ row.employee_id }}"
+                class="editable start-date"
+              />
+            </td>
+            <td>
+              <input
+                type="date"
+                value="{{ row.EndDate if row.EndDate else '' }}"
+                data-id="{{ row.employee_id }}"
+                class="editable end-date"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                step="0.01"
+                value="{{ row.DirectRate if row.DirectRate else '' }}"
+                data-id="{{ row.employee_id }}"
+                class="editable direct-rate"
+              />
+            </td>
+            <td style="display: flex">
+              <button class="save-btn" data-id="{{ row.employee_id }}">
+                Save
+              </button>
+              <button class="delete-btn" data-id="{{ row.employee_id }}">
+                Delete
+              </button>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -142,11 +205,12 @@
     </div>
 
     <script>
-      let sortOrder = {}; // Track the sort order for each column
+      let sortOrder = {};
 
       function filterTable() {
-        // Get filter values
-        const idFilter = document.getElementById("filter-id").value.toLowerCase();
+        const idFilter = document
+          .getElementById("filter-id")
+          .value.toLowerCase();
         const firstNameFilter = document
           .getElementById("filter-first-name")
           .value.toLowerCase();
@@ -157,31 +221,28 @@
           .getElementById("filter-email")
           .value.toLowerCase();
 
-        // Get table rows
         const rows = document
           .getElementById("dataTable")
           .getElementsByTagName("tbody")[0]
           .getElementsByTagName("tr");
 
-        // Loop through rows and apply filters
         for (let i = 0; i < rows.length; i++) {
           const cells = rows[i].getElementsByTagName("td");
 
-          // Extract values from columns
-          const id = cells[0].textContent.toLowerCase(); // ID From Jamis is in column 0
-          const firstName = cells[1].textContent.toLowerCase(); // First Name is in column 1
-          const lastName = cells[2].textContent.toLowerCase(); // Last Name is in column 2
-          const email = cells[3].textContent.toLowerCase(); // Email is in column 3
+          const id = cells[0].textContent.toLowerCase();
+          const firstName = cells[1].textContent.toLowerCase();
+          const lastName = cells[2].textContent.toLowerCase();
+          const email = cells[3].textContent.toLowerCase();
 
-          // Check for matches
           const idMatch = id.includes(idFilter);
           const firstNameMatch = firstName.includes(firstNameFilter);
           const lastNameMatch = lastName.includes(lastNameFilter);
           const emailMatch = email.includes(emailFilter);
 
-          // Show or hide the row based on filter matches
           rows[i].style.display =
-            idMatch && firstNameMatch && lastNameMatch && emailMatch ? "" : "none";
+            idMatch && firstNameMatch && lastNameMatch && emailMatch
+              ? ""
+              : "none";
         }
       }
 
@@ -190,19 +251,16 @@
         const tbody = table.tBodies[0];
         const rows = Array.from(tbody.getElementsByTagName("tr"));
 
-        // Toggle the sort order for the clicked column
         sortOrder[columnIndex] = !sortOrder[columnIndex];
 
-        // Clear other arrows
         const allArrows = document.querySelectorAll(".sort-arrow");
-        allArrows.forEach(arrow => arrow.classList.remove("asc", "desc"));
+        allArrows.forEach((arrow) => arrow.classList.remove("asc", "desc"));
 
-        // Set the arrow for the clicked column
         const arrow = document.getElementById("arrow-" + columnIndex);
         if (sortOrder[columnIndex]) {
-          arrow.classList.add("asc"); // Add the up arrow (ascending)
+          arrow.classList.add("asc");
         } else {
-          arrow.classList.add("desc"); // Add the down arrow (descending)
+          arrow.classList.add("desc");
         }
 
         rows.sort((a, b) => {
@@ -223,8 +281,67 @@
             : cellB.localeCompare(cellA);
         });
 
-        rows.forEach((row) => tbody.appendChild(row)); 
+        rows.forEach((row) => tbody.appendChild(row));
       }
+      document.addEventListener("DOMContentLoaded", () => {
+        const saveButtons = document.querySelectorAll(".save-btn");
+        const deleteButtons = document.querySelectorAll(".delete-btn");
+
+        saveButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            const id = button.getAttribute("data-id");
+            const startDate = document.querySelector(
+              `.start-date[data-id='${id}']`
+            ).value;
+            const endDate = document.querySelector(
+              `.end-date[data-id='${id}']`
+            ).value;
+            const directRate = document.querySelector(
+              `.direct-rate[data-id='${id}']`
+            ).value;
+
+            fetch("/employees/update", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                id,
+                start_date: startDate,
+                end_date: endDate,
+                direct_rate: directRate,
+              }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                alert(data.message);
+              })
+              .catch((error) =>
+                console.error("Error updating employee:", error)
+              );
+          });
+        });
+
+        deleteButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            const id = button.getAttribute("data-id");
+
+            fetch(`/employees/delete/${id}`, {
+              method: "DELETE",
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                alert(data.message);
+                if (data.message === "Employee deleted successfully") {
+                  document.getElementById(`employee-${id}`).remove();
+                }
+              })
+              .catch((error) =>
+                console.error("Error deleting employee:", error)
+              );
+          });
+        });
+      });
     </script>
   </body>
 </html>

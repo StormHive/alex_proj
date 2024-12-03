@@ -176,7 +176,7 @@
             jobs.forEach((job) => {
               const option = document.createElement("option");
               option.value = job.job_id;
-              option.text = `Job ID: ${job.job_id}`;
+              option.text = `${job.Title}`;
               jobDropdown.appendChild(option);
             });
             jobDropdown.disabled = false;
@@ -220,7 +220,7 @@
         jobs.forEach((job) => {
           const option = document.createElement("option");
           option.value = job.job_id;
-          option.text = `Job ID: ${job.job_id}`;
+          option.text = `${job.Title}`;
           jobDropdown.appendChild(option);
         });
       }
@@ -533,10 +533,8 @@
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
           ) {
-            // Success message
             messageDiv.innerHTML = `<div style="color: green;">File generated successfully! click below to download</div>`;
 
-            // Handle file download
             const blob = await response.blob();
             const downloadLink = document.createElement("button");
             downloadLink.textContent = "Download File";

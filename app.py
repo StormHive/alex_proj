@@ -70,7 +70,7 @@ def save_user_info(first_name, last_name, username, password, role):
         return {"error": str(e)}
 
 @app.route('/')
-@login_required(["Administrator"])
+@login_required(["Administrator", "finance_team"])
 def index():
     query = "select distinct contract_id from dbo.periodofperformance"
     with engine.connect() as conn:
@@ -187,7 +187,7 @@ def get_job_for_update(employee_id, month):
         jobs = pd.read_sql_query(query, conn, params=(employee_id, month))
     
     if jobs.empty:
-        query = "select job_id from job"
+        query = "select job_id, Title from job"
         jobs = pd.read_sql_query(query, conn)
     
     return jsonify(jobs.to_dict(orient='records'))
@@ -237,7 +237,6 @@ def update_availability():
             trans = conn.begin()
             try:
                 if action == 'save':
-                    # Insert a new record
                     stmt = text("""
                         INSERT INTO workavailabilityoverride 
                         (employee_id, laborcategory_id, job_id, dateavailable, availablehours, workhourspercentage)
@@ -255,7 +254,6 @@ def update_availability():
                     message = "New availability record saved successfully."
 
                 elif action == 'update':
-                    # Update existing record
                     stmt = text("""
                         UPDATE workavailabilityoverride
                         SET laborcategory_id = :laborcategory_id, job_id = :job_id, availablehours = :available_hours, workhourspercentage = :work_hours_percentage
@@ -273,7 +271,6 @@ def update_availability():
                     message = "Availability record updated successfully."
 
                 elif action == 'remove_override':
-                    # Remove the override by deleting the record
                     delete_stmt = text("""
                         DELETE FROM workavailabilityoverride
                         WHERE employee_id = :employee_id AND dateavailable = :dateavailable
@@ -301,7 +298,7 @@ def update_availability():
 
 
 @app.route('/view_availability')
-@login_required(['Manager', "Administrator"])
+@login_required(['Manager', "Administrator", "finance_team"])
 def view_availability():
     try:
         with engine.connect() as conn:
@@ -331,7 +328,7 @@ def view_availability():
     return render_template('view_availability.html', data=availability_data)
 
 @app.route('/view_availability_override')
-@login_required(['Manager', "Administrator"])
+@login_required(['Manager', "Administrator", "finance_team"])
 def view_availability_override():
     try:
         with engine.connect() as conn:
@@ -380,7 +377,7 @@ def get_contracts():
     return jsonify({"status": "success", "data": contracts_list}), 200
 
 @app.route('/add_work_availability', methods=['POST', "GET"])
-@login_required(["Administrator"])
+@login_required(["Administrator", "finance_team"])
 def add_work_availability():
     if request.method == "GET":
         return render_template("add_work_availability.html")
@@ -420,7 +417,7 @@ def add_work_availability():
     return redirect("/view_availability")
 
 @app.route('/update_work_availability/<int:record_id>', methods=['PUT'])
-@login_required(['Manager', "Administrator"])
+@login_required(['Manager', "Administrator", "finance_team"])
 def update_work_availability(record_id):
     data = request.json
 
@@ -453,7 +450,7 @@ def update_work_availability(record_id):
     return jsonify({"status": "success", "message": "Record updated successfully"})
 
 @app.route('/update_work_availability_override/<int:record_id>', methods=['PUT'])
-@login_required(['Manager', "Administrator"])
+@login_required(['Manager', "Administrator", "finance_team"])
 def update_work_availability_override(record_id):
     data = request.json
 
@@ -490,15 +487,17 @@ def update_work_availability_override(record_id):
 
 
 @app.route('/employees')
-@login_required(["Administrator"])
+@login_required(["Administrator", "finance_team"])
 def view_employee():
     try:
         with engine.connect() as conn:
             query = """
-            SELECT e.IdFromJamis, e.FirstName, e.LastName, e.Email, e.IsTbd, c.Name AS CompanyName, e.NoteForTbd,
-                es.StartDate, es.EndDate, es.DirectRate FROM Employee e
-            LEFT JOIN Company c ON e.company_id = c.company_id
-            LEFT JOIN EmployeeSalary es ON e.employee_id = es.employee_id
+                SELECT e.IdFromJamis, e.employee_id, e.FirstName, e.LastName, e.Email, e.IsTbd, 
+                    c.Name AS CompanyName, e.NoteForTbd, es.StartDate, es.EndDate, es.DirectRate 
+                FROM Employee e
+                LEFT JOIN Company c ON e.company_id = c.company_id
+                LEFT JOIN EmployeeSalary es ON e.employee_id = es.employee_id
+                WHERE e.is_deleted = 0
             """
             result = conn.execute(text(query))
             employees_data = result.fetchall()
@@ -509,7 +508,7 @@ def view_employee():
         
 
 @app.route('/add_employee', methods=['POST'])
-@login_required(["Administrator"])
+@login_required(["Administrator", "finance_team"])
 def add_employee():
     IdFromJamis = request.form.get('IdFromJamis')
     employee_data = {
@@ -574,7 +573,7 @@ def add_user():
     return render_template('create_user.html')
 
 @app.route('/add_employee_form', methods=['GET'])
-@login_required(["Administrator"])
+@login_required(["Administrator", "finance_team"])
 def add_employee_form():
     with engine.connect() as conn:
         query = """
@@ -657,6 +656,49 @@ def update_user(user_id):
     return jsonify({"status": "success", "message": "User role updated successfully"})
 
 
+@app.route('/employees/update', methods=['POST'])
+@login_required(["Administrator", "finance_team"])
+def update_employee():
+    try:
+        data = request.json
+        employee_id = int(data['id'])
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        direct_rate = data.get('direct_rate')
+        
+        with engine.connect() as conn:
+            query = """
+            UPDATE EmployeeSalary
+            SET StartDate = :start_date, EndDate = :end_date, DirectRate = :direct_rate
+            WHERE employee_id = :employee_id
+            """
+            conn.execute(text(query), {
+                'start_date': start_date,
+                'end_date': end_date,
+                'direct_rate': direct_rate,
+                'employee_id': employee_id,
+            })
+            conn.commit()
+
+        return jsonify({'message': 'Employee updated successfully'}), 200
+    except Exception as e:
+        logging.error(f"Error updating employee: {e}")
+        return jsonify({'message': 'Failed to update employee'}), 500
+
+
+@app.route('/employees/delete/<int:employee_id>', methods=['DELETE'])
+@login_required(["Administrator", "finance_team"])
+def delete_employee(employee_id):
+    try:
+        query = "UPDATE Employee SET is_deleted = 1 WHERE employee_id = :employee_id"
+        with engine.connect() as conn:
+            conn.execute(text(query), {'employee_id': employee_id})
+            conn.commit()
+        return jsonify({'message': 'Employee deleted successfully'}), 200
+    except Exception as e:
+        logging.error(f"Error deleting employee: {e}")
+        return jsonify({'message': 'Failed to delete employee'}), 500
+    
 @click.command('create-user')
 @with_appcontext
 def create_user():

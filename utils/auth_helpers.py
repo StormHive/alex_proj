@@ -10,6 +10,8 @@ def login_required(allowed_roles):
             if session.get('role') not in allowed_roles:
                 if session.get('role') == "Manager":
                     return redirect("/view_availability")
+                if session.get('role') == "finance_team":
+                    return redirect("/")
                 
             return f(*args, **kwargs)
         return decorated_function

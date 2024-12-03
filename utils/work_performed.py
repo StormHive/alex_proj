@@ -13,11 +13,10 @@ def create_work_performed_spreadsheet(contract_id, data1, data2, data3, lookup_m
         for year in range(dc_start_year, dc_end_year + 1):
             ws2 = wb.create_sheet(title=f"{year} Work Performed")
         
-            # Header
+            
             header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid") 
             header_font = Font(bold=True, color="FFFFFF") 
   
-            # Populate the Work Performed sheet
             for r_idx, row in enumerate(dataframe_to_rows(data2, index=False, header=True), start=1):
                 for c_idx, value in enumerate(row, start=1):
                     cell = ws2.cell(row=r_idx, column=c_idx, value=value)
@@ -35,7 +34,6 @@ def create_work_performed_spreadsheet(contract_id, data1, data2, data3, lookup_m
                 period_start_date = hrs_data['StartDate'].min().strftime("%Y-%m-%d")
                 period_end_date = hrs_data['EndDate'].max().strftime("%Y-%m-%d")
 
-                # categorize as actual/forecast
                 generated_months = list_contract_months(period_start_date, period_end_date)
 
         wb.save(filename)
