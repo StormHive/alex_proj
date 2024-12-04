@@ -235,7 +235,7 @@
         laborCategories.forEach((category) => {
           const option = document.createElement("option");
           option.value = category.laborcategory_id;
-          option.text = `Labor Category ID: ${category.laborcategory_id}`;
+          option.text = `${category.Name}`;
           laborCategoryDropdown.appendChild(option);
         });
       }
@@ -280,7 +280,9 @@
           >
             <option value="">Select a contract</option>
             {% for contract in contracts %}
-            <option value="{{ contract }}">Contract_ID: {{ contract }}</option>
+            <option value="{{ contract.contract_id }}">
+              {{ contract.Name }}
+            </option>
             {% endfor %}
           </select>
         </div>
@@ -533,8 +535,10 @@
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
           ) {
+            // Success message
             messageDiv.innerHTML = `<div style="color: green;">File generated successfully! click below to download</div>`;
 
+            // Handle file download
             const blob = await response.blob();
             const downloadLink = document.createElement("button");
             downloadLink.textContent = "Download File";

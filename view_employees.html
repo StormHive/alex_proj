@@ -62,8 +62,9 @@
         padding: 5px;
         font-size: 14px;
       }
-
       .save-btn,
+      .edit-btn,
+      .cancel-btn,
       .delete-btn {
         padding: 5px 10px;
         margin: 2px;
@@ -74,8 +75,6 @@
   <body>
     <div class="container">
       <h2>Employee Records</h2>
-
-      <!-- Filter section -->
       <div class="filters">
         <label>
           ID From Jamis:
@@ -114,42 +113,21 @@
           />
         </label>
       </div>
-
       {% if data %}
       <table id="dataTable">
         <thead>
           <tr>
-            <th onclick="sortTable(0)">
-              ID From Jamis <span id="arrow-0" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(1)">
-              First Name <span id="arrow-1" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(2)">
-              Last Name <span id="arrow-2" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(3)">
-              Email <span id="arrow-3" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(4)">
-              Is TBD <span id="arrow-4" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(5)">
-              Company Name <span id="arrow-5" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(6)">
-              Note for TBD <span id="arrow-6" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(7)">
-              Salary Start Date <span id="arrow-7" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(8)">
-              Salary End Date <span id="arrow-8" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(9)">
-              Direct Rate <span id="arrow-9" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(9)">Action</th>
+            <th>ID From Jamis</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Email</th>
+            <th>Is TBD</th>
+            <th>Company Name</th>
+            <th>Note for TBD</th>
+            <th>Salary Start Date</th>
+            <th>Salary End Date</th>
+            <th>Direct Rate</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -162,34 +140,44 @@
             <td>{{ row.IsTbd }}</td>
             <td>{{ row.CompanyName }}</td>
             <td>{{ row.NoteForTbd }}</td>
-            <td>
-              <input
-                type="date"
-                value="{{ row.StartDate if row.StartDate else '' }}"
-                data-id="{{ row.employee_id }}"
-                class="editable start-date"
-              />
+            <td
+              class="editable-cell"
+              data-field="start_date"
+              data-id="{{ row.employee_id }}"
+            >
+              {{ row.StartDate }}
+            </td>
+            <td
+              class="editable-cell"
+              data-field="end_date"
+              data-id="{{ row.employee_id }}"
+            >
+              {{ row.EndDate }}
+            </td>
+            <td
+              class="editable-cell"
+              data-field="direct_rate"
+              data-id="{{ row.employee_id }}"
+            >
+              {{ row.DirectRate }}
             </td>
             <td>
-              <input
-                type="date"
-                value="{{ row.EndDate if row.EndDate else '' }}"
+              <button class="edit-btn" data-id="{{ row.employee_id }}">
+                Edit
+              </button>
+              <button
+                class="save-btn"
                 data-id="{{ row.employee_id }}"
-                class="editable end-date"
-              />
-            </td>
-            <td>
-              <input
-                type="number"
-                step="0.01"
-                value="{{ row.DirectRate if row.DirectRate else '' }}"
-                data-id="{{ row.employee_id }}"
-                class="editable direct-rate"
-              />
-            </td>
-            <td style="display: flex">
-              <button class="save-btn" data-id="{{ row.employee_id }}">
+                style="display: none"
+              >
                 Save
+              </button>
+              <button
+                class="cancel-btn"
+                data-id="{{ row.employee_id }}"
+                style="display: none"
+              >
+                Cancel
               </button>
               <button class="delete-btn" data-id="{{ row.employee_id }}">
                 Delete
@@ -283,45 +271,70 @@
 
         rows.forEach((row) => tbody.appendChild(row));
       }
-      document.addEventListener("DOMContentLoaded", () => {
-        const saveButtons = document.querySelectorAll(".save-btn");
-        const deleteButtons = document.querySelectorAll(".delete-btn");
+      document
+        .querySelectorAll(".editable-cell[data-field='direct_rate']")
+        .forEach((cell) => {
+          const value = parseFloat(cell.textContent).toFixed(2);
+          cell.textContent = value;
+        });
+      function toggleEditMode(employeeId, enableEdit) {
+        const row = document.getElementById(`employee-${employeeId}`);
+        const editableCells = row.querySelectorAll(".editable-cell");
 
-        saveButtons.forEach((button) => {
+        editableCells.forEach((cell) => {
+          const field = cell.dataset.field;
+          if (enableEdit) {
+            const currentValue = cell.textContent.trim();
+
+            let inputType = "text";
+            if (field === "start_date" || field === "end_date") {
+              inputType = "date";
+            } else if (field === "direct_rate") {
+              const currentValue = parseFloat(cell.textContent.trim()).toFixed(
+                2
+              );
+              inputType = "number";
+            }
+            console.log(currentValue);
+
+            cell.innerHTML = `<input type="${inputType}" value="${currentValue}" data-field="${field}" />`;
+          } else {
+            const input = cell.querySelector("input");
+            const value = input.value;
+
+            const formattedValue =
+              field === "direct_rate" ? parseFloat(value).toFixed(2) : value;
+
+            cell.textContent = formattedValue;
+          }
+        });
+
+        row.querySelector(".edit-btn").style.display = enableEdit
+          ? "none"
+          : "inline-block";
+        row.querySelector(".save-btn").style.display = enableEdit
+          ? "inline-block"
+          : "none";
+        row.querySelector(".cancel-btn").style.display = enableEdit
+          ? "inline-block"
+          : "none";
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll(".edit-btn").forEach((button) => {
           button.addEventListener("click", () => {
             const id = button.getAttribute("data-id");
-            const startDate = document.querySelector(
-              `.start-date[data-id='${id}']`
-            ).value;
-            const endDate = document.querySelector(
-              `.end-date[data-id='${id}']`
-            ).value;
-            const directRate = document.querySelector(
-              `.direct-rate[data-id='${id}']`
-            ).value;
-
-            fetch("/employees/update", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                id,
-                start_date: startDate,
-                end_date: endDate,
-                direct_rate: directRate,
-              }),
-            })
-              .then((response) => response.json())
-              .then((data) => {
-                alert(data.message);
-              })
-              .catch((error) =>
-                console.error("Error updating employee:", error)
-              );
+            toggleEditMode(id, true);
           });
         });
 
+        document.querySelectorAll(".cancel-btn").forEach((button) => {
+          button.addEventListener("click", () => {
+            const id = button.getAttribute("data-id");
+            toggleEditMode(id, false);
+          });
+        });
+        const deleteButtons = document.querySelectorAll(".delete-btn");
         deleteButtons.forEach((button) => {
           button.addEventListener("click", () => {
             const id = button.getAttribute("data-id");
@@ -338,6 +351,45 @@
               })
               .catch((error) =>
                 console.error("Error deleting employee:", error)
+              );
+          });
+        });
+
+        document.querySelectorAll(".save-btn").forEach((button) => {
+          button.addEventListener("click", () => {
+            const id = button.getAttribute("data-id");
+            const row = document.getElementById(`employee-${id}`);
+            const inputs = row.querySelectorAll("input");
+
+            const updatedData = {};
+            var startDate = null;
+            var endDate = null;
+            inputs.forEach((input) => {
+              updatedData[input.dataset.field] = input.value;
+              if (input.dataset.field === "start_date") {
+                startDate = input.value;
+              } else if (input.dataset.field === "end_date") {
+                endDate = input.value;
+              }
+            });
+            if (startDate && endDate && startDate >= endDate) {
+              alert(
+                "Error: Salary Start Date must be earlier that the Salary End Date"
+              );
+              return;
+            }
+            fetch("/employees/update", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id, ...updatedData }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                alert(data.message);
+                if (data.success) toggleEditMode(id, false);
+              })
+              .catch((error) =>
+                console.error("Error updating employee:", error)
               );
           });
         });
