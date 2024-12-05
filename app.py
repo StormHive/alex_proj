@@ -3,6 +3,7 @@ import pandas as pd
 from flask import Flask, render_template, jsonify, request, redirect, url_for, session
 from flask import send_from_directory
 from sqlalchemy import create_engine, text
+from sqlalchemy.sql import bindparam
 from distutils.command.build_scripts import first_line_re 
 import urllib
 import logging
@@ -69,14 +70,41 @@ def save_user_info(first_name, last_name, username, password, role):
     except Exception as e:
         return {"error": str(e)}
 
+def get_user_id_by_username(username):
+    query = f"SELECT user_id FROM users WHERE username = '{username}'"
+    with engine.connect() as conn:
+            result = conn.execute(
+                text(query)
+            )
+            user = result.fetchone()
+    return user[0] if len(user) > 0 else None
+
+
+def save_manager_contract(user_id):
+    query = f"INSERT INTO manager_contract (user_id) VALUES ({user_id})"
+    with engine.connect() as conn:
+        conn.execute(
+            text(query)
+        )
+        conn.commit()
+
+
 @app.route('/')
 @login_required(["Administrator", "finance_team"])
 def index():
-    query = "select distinct contract_id from dbo.periodofperformance"
+    query_contract_data = """
+    SELECT DISTINCT c.contract_id, c.PrimeContractNumber, c.TaskNumber, c.Name
+    FROM Contract c
+    INNER JOIN dbo.periodofperformance p ON c.contract_id = p.contract_id
+    """
+    
     with engine.connect() as conn:
-        contracts_df = pd.read_sql_query(query, conn)
-    contracts = contracts_df['contract_id'].tolist()
-    return render_template('index.html', contracts=contracts)
+        contract_data_df = pd.read_sql_query(query_contract_data, conn)
+        contract_data = contract_data_df.to_dict(orient='records')
+        print(contract_data)
+    
+    return render_template('index.html', contracts=contract_data)
+
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -237,6 +265,7 @@ def update_availability():
             trans = conn.begin()
             try:
                 if action == 'save':
+                    # Insert a new record
                     stmt = text("""
                         INSERT INTO workavailabilityoverride 
                         (employee_id, laborcategory_id, job_id, dateavailable, availablehours, workhourspercentage)
@@ -254,6 +283,7 @@ def update_availability():
                     message = "New availability record saved successfully."
 
                 elif action == 'update':
+                    # Update existing record
                     stmt = text("""
                         UPDATE workavailabilityoverride
                         SET laborcategory_id = :laborcategory_id, job_id = :job_id, availablehours = :available_hours, workhourspercentage = :work_hours_percentage
@@ -271,6 +301,7 @@ def update_availability():
                     message = "Availability record updated successfully."
 
                 elif action == 'remove_override':
+                    # Remove the override by deleting the record
                     delete_stmt = text("""
                         DELETE FROM workavailabilityoverride
                         WHERE employee_id = :employee_id AND dateavailable = :dateavailable
@@ -301,31 +332,53 @@ def update_availability():
 @login_required(['Manager', "Administrator", "finance_team"])
 def view_availability():
     try:
+        user_role = session.get('role')
+        user_id = session.get('user_id')
+        
+        base_query = """
+            SELECT wa.*, 
+                e.FirstName, 
+                e.LastName, 
+                lc.Name AS LaborCategoryName,
+                jb.Title AS JobName,
+                pop.contract_id AS PeriodOfPerformance,
+                pop.StartDate AS StartDate,
+                pop.EndDate AS EndDate,
+                c.Name AS ContractName
+            FROM WorkAvailability wa
+            JOIN Employee e ON wa.employee_id = e.employee_id
+            JOIN LaborCategory lc ON wa.laborcategory_id = lc.laborcategory_id
+            JOIN Job jb ON wa.job_id = jb.job_id
+            JOIN PeriodOfPerformance pop ON wa.pop_id = pop.pop_id
+            JOIN Contract c ON pop.contract_id = c.contract_id
+        """
+        
         with engine.connect() as conn:
-            query = """
-                SELECT wa.*, 
-                    e.FirstName, 
-                    e.LastName, 
-                    lc.Name AS LaborCategoryName,
-                    jb.Title AS JobName,
-                    pop.contract_id AS PeriodOfPerformance,
-                    pop.StartDate AS StartDate,
-                    pop.EndDate AS EndDate,
-                    c.Name AS ContractName
-                FROM WorkAvailability wa
-                JOIN Employee e ON wa.employee_id = e.employee_id
-                JOIN LaborCategory lc ON wa.laborcategory_id = lc.laborcategory_id
-                JOIN Job jb ON wa.job_id = jb.job_id
-                JOIN PeriodOfPerformance pop ON wa.pop_id = pop.pop_id
-                JOIN Contract c ON pop.contract_id = c.contract_id;
-            """
-            result = conn.execute(text(query))
-            availability_data = result.fetchall()
+            if user_role.lower() == "manager":
+                contract_query = """
+                    SELECT contract_id 
+                    FROM manager_contract 
+                    WHERE user_id = :user_id AND contract_id IS NOT NULL
+                """
+                contract_ids = conn.execute(text(contract_query), {"user_id": user_id}).fetchall()
+                contract_ids = [row[0] for row in contract_ids]
+                
+                if contract_ids:
+                    base_query += " WHERE c.contract_id IN :contract_ids"
+                    result = conn.execute(text(base_query).bindparams(bindparam("contract_ids", expanding=True)),
+                {"contract_ids": contract_ids})
+                else:
+                    result = []
+            else:
+                result = conn.execute(text(base_query))
+
+            availability_data = result.fetchall() if result else []
     except Exception as e:
         logging.error(f"Error fetching availability data: {e}")
         availability_data = []
 
     return render_template('view_availability.html', data=availability_data)
+
 
 @app.route('/view_availability_override')
 @login_required(['Manager', "Administrator", "finance_team"])
@@ -567,6 +620,10 @@ def add_user():
                 password=user_data['password'],
                 role=user_data['role'],
             )
+            if user_data['role'].lower() == "manager":
+                user_id = get_user_id_by_username(user_data['username'])
+                if user_id:
+                    save_manager_contract(user_id=user_id)
             return render_template('create_user.html', message=response)
         except Exception as e:
             return render_template('create_user.html', error=f"Error occured in adding user: {e}")
@@ -664,7 +721,7 @@ def update_employee():
         employee_id = int(data['id'])
         start_date = data.get('start_date')
         end_date = data.get('end_date')
-        direct_rate = data.get('direct_rate')
+        direct_rate = float(data.get('direct_rate'))
         
         with engine.connect() as conn:
             query = """
