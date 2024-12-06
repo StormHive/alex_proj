@@ -55,11 +55,11 @@
         padding: 5px;
       }
       .sort-arrow.asc::after {
-        content: "↑"; /* Up arrow */
+        content: '↑'; 
         color: green;
       }
       .sort-arrow.desc::after {
-        content: "↓"; /* Down arrow */
+        content: '↓'; 
         color: green;
       }
     </style>
@@ -112,22 +112,27 @@
         <thead>
           <tr>
             <th onclick="sortTable(0)">
-              Employee Name <span id="arrow-0" class="sort-arrow"></span>
+              Employee Name 
+              <span id="arrow-0" class="sort-arrow"></span>
             </th>
             <th onclick="sortTable(1)">
-              Labor Category Name <span id="arrow-1" class="sort-arrow"></span>
+              Labor Category Name 
+              <span id="arrow-1" class="sort-arrow"></span>
             </th>
             <th onclick="sortTable(2)">
-              Job Name <span id="arrow-2" class="sort-arrow"></span>
+              Job Name 
+              <span id="arrow-2" class="sort-arrow"></span>
             </th>
             <th onclick="sortTable(3)">
-              Date Available <span id="arrow-3" class="sort-arrow"></span>
+              Date Available 
+              <span id="arrow-3" class="sort-arrow"></span>
             </th>
             <th onclick="sortTable(4)">
-              Available Hours <span id="arrow-4" class="sort-arrow"></span>
+              Available Hours 
+              <span id="arrow-4" class="sort-arrow"></span>
             </th>
             <th onclick="sortTable(5)">
-              Work Hours Percentage
+              Work Hours Percentage 
               <span id="arrow-5" class="sort-arrow"></span>
             </th>
             <th>Actions</th>
@@ -265,7 +270,6 @@
         const rows = Array.from(tbody.getElementsByTagName("tr"));
 
         sortOrder[columnIndex] = !sortOrder[columnIndex];
-
         document.querySelectorAll(".sort-arrow").forEach((arrow) => {
           arrow.classList.remove("asc", "desc");
         });

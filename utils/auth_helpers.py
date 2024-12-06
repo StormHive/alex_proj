@@ -12,7 +12,6 @@ def login_required(allowed_roles):
                     return redirect("/view_availability")
                 if session.get('role') == "finance_team":
                     return redirect("/")
-                
             return f(*args, **kwargs)
         return decorated_function
     return decorator

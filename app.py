@@ -3,7 +3,6 @@ import pandas as pd
 from flask import Flask, render_template, jsonify, request, redirect, url_for, session
 from flask import send_from_directory
 from sqlalchemy import create_engine, text
-from sqlalchemy.sql import bindparam
 from distutils.command.build_scripts import first_line_re 
 import urllib
 import logging
@@ -15,9 +14,10 @@ from utils.combined_workbook_creation import create_combined_workbook
 from utils.auth_helpers import login_required
 from flask.cli import with_appcontext
 import click
+from sqlalchemy.sql import bindparam
 
-app = Flask(__name__, template_folder="/Users/mac/Downloads/Work Availability UI 1 - Copy")
-app.secret_key = 'f1bec6dab3cfac9cd0e06bf99cb7926c33f74e2b65678e8b'
+
+app = Flask(__name__, template_folder="/Users/mac/Downloads/Work Availability UI")
 bcrypt = Bcrypt(app)
 logging.basicConfig(level=logging.DEBUG)
 
@@ -37,6 +37,7 @@ params = urllib.parse.quote_plus(
     'trustservercertificate=yes;'
     'connection timeout=30;'
 )
+
 
 db_uri = f"mssql+pyodbc:///?odbc_connect={params}"
 engine = create_engine(db_uri)
@@ -282,24 +283,6 @@ def update_availability():
                     trans.commit()
                     message = "New availability record saved successfully."
 
-                elif action == 'update':
-                    # Update existing record
-                    stmt = text("""
-                        UPDATE workavailabilityoverride
-                        SET laborcategory_id = :laborcategory_id, job_id = :job_id, availablehours = :available_hours, workhourspercentage = :work_hours_percentage
-                        WHERE employee_id = :employee_id AND dateavailable = :dateavailable
-                    """)
-                    conn.execute(stmt, {
-                        'employee_id': employee_id,
-                        'laborcategory_id': laborcategory_id,
-                        'job_id': job_id if job_id else None,
-                        'dateavailable': month,
-                        'available_hours': available_hours,
-                        'work_hours_percentage': work_hours_percentage
-                    })
-                    trans.commit()
-                    message = "Availability record updated successfully."
-
                 elif action == 'remove_override':
                     # Remove the override by deleting the record
                     delete_stmt = text("""
@@ -318,7 +301,6 @@ def update_availability():
 
             except Exception as e:
                 trans.rollback()
-                logging.error(f"Error during availability update: {e}")
                 message = "An error occurred while processing your request."
 
     except Exception as e:
@@ -381,29 +363,79 @@ def view_availability():
 
 
 @app.route('/view_availability_override')
-@login_required(['Manager', "Administrator", "finance_team"])
-def view_availability_override():
+@login_required(['Manager', 'Administrator', 'finance_team'])
+def view_work_availability_by_contract():
+    user_id = session.get('user_id')
+    user_role = session.get('role')
     try:
         with engine.connect() as conn:
-            query = """
-                SELECT wa.*, 
-                    e.FirstName, 
-                    e.LastName, 
-                    lc.Name AS LaborCategoryName,
-                    jb.Title AS JobName
-                FROM workavailabilityoverride wa
-                left JOIN Employee e ON wa.employee_id = e.employee_id
-                left JOIN LaborCategory lc ON wa.laborcategory_id = lc.laborcategory_id
-                left JOIN Job jb ON wa.job_id = jb.job_id;
-            """
-            result = conn.execute(text(query))
-            availability_data = result.fetchall()
-            print(availability_data)
+            if user_role.lower() == "manager":
+                contract_query = """
+                    SELECT contract_id 
+                    FROM manager_contract 
+                    WHERE user_id = :user_id AND contract_id IS NOT NULL
+                """
+                contract_ids = conn.execute(text(contract_query), {"user_id": user_id}).fetchall()
+                contract_ids = [row[0] for row in contract_ids]
+                contract_ids_str = ', '.join(map(str, contract_ids))
+                print(contract_ids_str)
+                employee_query = f"""
+                        SELECT DISTINCT 
+                            e.employee_id
+                        FROM 
+                            Contract c
+                        JOIN 
+                            PeriodOfPerformance pop ON c.contract_id = pop.contract_id
+                        LEFT JOIN 
+                            WorkAvailability wa ON wa.pop_id = pop.pop_id
+                        LEFT JOIN 
+                            Employee e ON wa.employee_id = e.employee_id
+                        WHERE 
+                            pop.contract_id IN ({contract_ids_str})
+                        ORDER BY 
+                            e.employee_id;
+                    """
+                result = conn.execute(text(employee_query))
+                employee_ids = [row.employee_id for row in result.fetchall()]
+                employee_ids_str = ', '.join(map(str, employee_ids))
+                employee_ids_str = f"({employee_ids_str})"
+                print(employee_ids_str)
+                if not employee_ids:
+                    return render_template('view_workavailability_override.html', data=[])
+
+                availability_query = f"""
+                    SELECT wa.*, 
+                        e.FirstName, 
+                        e.LastName, 
+                        lc.Name AS LaborCategoryName,
+                        jb.Title AS JobName
+                    FROM workavailabilityoverride wa
+                    LEFT JOIN Employee e ON wa.employee_id = e.employee_id
+                    LEFT JOIN LaborCategory lc ON wa.laborcategory_id = lc.laborcategory_id
+                    LEFT JOIN Job jb ON wa.job_id = jb.job_id
+                    WHERE wa.employee_id IN {employee_ids_str};
+                """
+                availability_result = conn.execute(text(availability_query))
+                availability_data = availability_result.fetchall()
+            else:
+                query = """
+                    SELECT wa.*, 
+                        e.FirstName, 
+                        e.LastName, 
+                        lc.Name AS LaborCategoryName,
+                        jb.Title AS JobName
+                    FROM workavailabilityoverride wa
+                    left JOIN Employee e ON wa.employee_id = e.employee_id
+                    left JOIN LaborCategory lc ON wa.laborcategory_id = lc.laborcategory_id
+                    left JOIN Job jb ON wa.job_id = jb.job_id;
+                """
+                result = conn.execute(text(query))
+                availability_data = result.fetchall()
     except Exception as e:
-        logging.error(f"Error fetching availability data: {e}")
+        logging.error(f"Error fetching work availability override data: {e}")
         availability_data = []
 
-    return render_template('vew_workavailabilty_override.html', data=availability_data)
+    return render_template('view_workavailabilty_override.html', data=availability_data)
 
 
 @app.route('/get_contracts', methods=['GET'])
@@ -692,10 +724,20 @@ def list_users():
 @login_required(["Administrator"])
 def delete_user(user_id):
     with engine.connect() as conn:
-        query = text("DELETE FROM users WHERE user_id = :id")
-        conn.execute(query, {"id": user_id})
-        conn.commit()
-    return jsonify({"status": "success", "message": "User deleted successfully"})
+        trans = conn.begin()
+        try:
+            check_query = text("SELECT COUNT(*) FROM manager_contract WHERE user_id = :id")
+            result = conn.execute(check_query, {"id": user_id}).scalar()
+            if result > 0:
+                delete_manager_query = text("DELETE FROM manager_contract WHERE user_id = :id")
+                conn.execute(delete_manager_query, {"id": user_id})
+            delete_user_query = text("DELETE FROM users WHERE user_id = :id")
+            conn.execute(delete_user_query, {"id": user_id})
+            trans.commit()
+            return jsonify({"status": "success", "message": "User and associated contracts deleted successfully"})
+        except Exception as e:
+            trans.rollback()
+            return jsonify({"status": "error", "message": str(e)}), 500
 
         
 @app.route("/update_user/<int:user_id>", methods=["PUT"])

@@ -355,12 +355,9 @@
 
         <div class="buttons">
           <button type="button" onclick="enableEdit()">Edit</button>
-          <button type="submit" name="action" value="update">Update</button>
           <button type="submit" name="action" value="save">Save</button>
+          <button type="submit" name="action" value="remove_override">Remove Override</button>
           <button type="button" onclick="cancelEdit()">Cancel</button>
-          <button type="submit" name="action" value="remove_override">
-            Remove Override
-          </button>
         </div>
       </form>
       <div style="margin-top: 1rem">
@@ -538,7 +535,7 @@
             // Success message
             messageDiv.innerHTML = `<div style="color: green;">File generated successfully! click below to download</div>`;
 
-            // Handle file download
+            // file download
             const blob = await response.blob();
             const downloadLink = document.createElement("button");
             downloadLink.textContent = "Download File";

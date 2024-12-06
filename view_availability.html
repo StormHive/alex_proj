@@ -28,30 +28,41 @@
       th {
         background-color: #f2f2f2;
       }
+
       h2 {
         text-align: center;
       }
+      .edit-button {
+        background-color: #4caf50;
+        color: white;
+        padding: 5px 10px;
+        border: none;
+        cursor: pointer;
+      }
+      .edit-button:hover {
+        background-color: #45a049;
+      }
 
       .filters {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 10px;
-        margin-bottom: 10px;
-        align-items: center;
-      }
+      display: flex;
+      flex-wrap: nowrap; 
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: center; 
+    }
 
       .filters input {
         padding: 5px;
       }
       .sort-arrow.asc::after {
-        content: "↑";
+        content: '↑'; 
         color: green;
       }
       .sort-arrow.desc::after {
-        content: "↓";
-        color: green;
+        content: '↓'; 
+        color: green; 
       }
-    </style>
+    </style>    
   </head>
   <body>
     <div class="container">
@@ -109,33 +120,16 @@
       <table id="dataTable">
         <thead>
           <tr>
-            <th onclick="sortTable(0)">
-              Employee Name <span id="arrow-0" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(1)">
-              Labor Category Name <span id="arrow-1" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(2)">
-              Job Name <span id="arrow-2" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(3)">
-              Contract Name <span id="arrow-3" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(4)">
-              Pop Start Date <span id="arrow-4" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(5)">
-              Pop End Date <span id="arrow-5" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(6)">
-              Available Hours <span id="arrow-6" class="sort-arrow"></span>
-            </th>
-            <th onclick="sortTable(7)">
-              Work Hours Percentage
-              <span id="arrow-7" class="sort-arrow"></span>
-            </th>
+            <th onclick="sortTable(0)">Employee Name <span id="arrow-0" class="sort-arrow"></span></th>
+            <th onclick="sortTable(1)">Labor Category Name <span id="arrow-1" class="sort-arrow"></span></th>
+            <th onclick="sortTable(2)">Job Name <span id="arrow-2" class="sort-arrow"></span></th>
+            <th onclick="sortTable(3)">Contract Name <span id="arrow-3" class="sort-arrow"></span></th>
+            <th onclick="sortTable(4)">Pop Start Date <span id="arrow-4" class="sort-arrow"></span></th>
+            <th onclick="sortTable(5)">Pop End Date <span id="arrow-5" class="sort-arrow"></span></th>
+            <th onclick="sortTable(6)">Available Hours <span id="arrow-6" class="sort-arrow"></span></th>
+            <th onclick="sortTable(7)">Work Hours Percentage <span id="arrow-7" class="sort-arrow"></span></th>
             <th>Actions</th>
-          </tr>
+          </tr>        
         </thead>
         <tbody>
           {% for row in data %}
@@ -180,7 +174,7 @@
     </div>
 
     <script>
-      let sortOrder = {};
+      let sortOrder = {}; 
       function filterTable() {
         const employeeFilter = document
           .getElementById("filter-employee")
@@ -194,7 +188,6 @@
         const contractFilter = document
           .getElementById("filter-contract")
           .value.toLowerCase();
-
         const rows = document
           .getElementById("dataTable")
           .getElementsByTagName("tbody")[0]
@@ -305,7 +298,6 @@
         const rows = Array.from(tbody.getElementsByTagName("tr"));
 
         sortOrder[columnIndex] = !sortOrder[columnIndex];
-
         document.querySelectorAll(".sort-arrow").forEach((arrow) => {
           arrow.classList.remove("asc", "desc");
         });
@@ -313,6 +305,7 @@
         const arrow = document.getElementById(`arrow-${columnIndex}`);
         arrow.classList.add(sortOrder[columnIndex] ? "asc" : "desc");
 
+        // Sort rows
         rows.sort((a, b) => {
           const cellA = a
             .getElementsByTagName("td")
@@ -333,6 +326,7 @@
 
         rows.forEach((row) => tbody.appendChild(row));
       }
+
     </script>
   </body>
 </html>
