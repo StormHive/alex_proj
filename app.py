@@ -1,6 +1,7 @@
+
 from functools import wraps
 import pandas as pd
-from flask import Flask, render_template, jsonify, request, redirect, url_for, session
+from flask import Flask, render_template, jsonify, request, redirect, url_for, session, flash
 from flask import send_from_directory
 from sqlalchemy import create_engine, text
 from distutils.command.build_scripts import first_line_re 
@@ -18,6 +19,7 @@ from sqlalchemy.sql import bindparam
 
 
 app = Flask(__name__, template_folder="/Users/mac/Downloads/Work Availability UI")
+app.secret_key = 'f1bec6dab3cfac9cd0e06bf99cb7926c33f74e2b65678e8b'
 bcrypt = Bcrypt(app)
 logging.basicConfig(level=logging.DEBUG)
 
@@ -632,6 +634,103 @@ def add_employee():
         conn.execute(text(salary_query), salary_data)
 
     return redirect('/employees')
+
+@app.route('/assign_contract', methods=['POST', 'GET'])
+@login_required(["Administrator"])
+def assign_contract():
+    if request.method == "POST":
+    
+        data = request.form
+        manager_id = data.get("manager_id")
+        contract_id = data.get("contract_id")
+
+        if not manager_id or not contract_id:
+            flash('Invalid data: Manager ID and Contract ID are required.', 'error')
+            return redirect('/assign_contract')
+        try:
+            
+            with engine.connect() as conn:
+                insert_query = f"""
+                INSERT INTO manager_contract (user_id, contract_id)
+                VALUES ({manager_id}, {contract_id})
+                """
+                conn.execute(
+                    text(insert_query)
+                )
+                conn.commit()
+            
+                fetch_query = """
+                    SELECT 
+                        u.first_name + ' ' + u.last_name AS manager_name,
+                        c.Name AS contract_name, ca.manager_id AS manager_id
+                    FROM 
+                        manager_contract ca
+                    INNER JOIN 
+                        users u ON ca.user_id = u.user_id
+                    INNER JOIN 
+                        Contract c ON ca.contract_id = c.contract_id;
+                """
+                result = conn.execute(text(fetch_query))
+                assignments = result.fetchall()
+            
+            flash('Contract assigned successfully!', 'success')
+            return render_template('assign_contract.html', data=assignments)
+        
+        except Exception as e:
+            flash(f"Error: {str(e)}", 'error')
+            return redirect('/assign_contract')
+    else:
+        with engine.connect() as conn:
+            fetch_query = """
+                SELECT 
+                    u.first_name + ' ' + u.last_name AS manager_name,
+                    c.Name AS contract_name, ca.manager_id AS manager_id
+                FROM 
+                    manager_contract ca
+                INNER JOIN 
+                    users u ON ca.user_id = u.user_id
+                INNER JOIN 
+                    Contract c ON ca.contract_id = c.contract_id;
+            """
+            result = conn.execute(text(fetch_query))
+            assignments = result.fetchall()
+        return render_template("assign_contract.html", data=assignments)
+    
+    
+@app.route('/delete_assignment/<int:assignment_id>', methods=['POST'])
+@login_required(["Administrator"])
+def delete_assignment(assignment_id):
+    try:
+        with engine.connect() as conn:
+            delete_query = """
+                DELETE FROM manager_contract
+                WHERE manager_id = :assignment_id
+            """
+            conn.execute(text(delete_query), {"assignment_id": assignment_id})
+            conn.commit()
+        flash("Assignment deleted successfully!", "success")
+    except Exception as e:
+        flash(f"Error deleting assignment: {str(e)}", "error")
+    return redirect('/assign_contract')
+
+@app.route('/get_managers', methods=['GET'])
+@login_required(["Administrator"])
+def get_managets():
+    with engine.connect() as conn:
+        query = "SELECT user_id, first_name, last_name FROM users WHERE role = 'manager'"
+        result = conn.execute(text(query))
+        managers_data = result.fetchall()
+        
+    if result.rowcount == 0:
+        return jsonify({"status": "error", "message": "No contracts found"}), 404
+
+    
+    managers_list = [
+        {"manager_id": row[0], "manager_name": f"{row[1]} {row[2]}"}
+        for row in managers_data
+    ] 
+
+    return jsonify({"status": "success", "data": managers_list}), 200
 
 @app.route('/add_user', methods=['POST', 'GET'])
 @login_required(["Administrator"])
