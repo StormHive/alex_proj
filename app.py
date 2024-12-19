@@ -1,4 +1,3 @@
-
 from functools import wraps
 import pandas as pd
 from flask import Flask, render_template, jsonify, request, redirect, url_for, session, flash
@@ -72,6 +71,26 @@ def save_user_info(first_name, last_name, username, password, role):
         return {"message": f"User information saved successfully username: {username}, password: {password}"}
     except Exception as e:
         return {"error": str(e)}
+    
+def save_events(information):
+    with engine.connect() as conn:
+        event_query = text("""
+        INSERT INTO events (event_date, event_time, performed_by, performed_action, created_at, user_role)
+        VALUES (:event_date, :event_time, :performed_by, :performed_action, :created_at, :user_role)
+        """)
+        
+        conn.execute(
+            event_query,
+            {
+                'event_date': datetime.now().date(),
+                'event_time': datetime.now().time(),
+                'performed_by': session.get('username', 'Unknown'),
+                'performed_action': information,
+                'created_at': datetime.now(),
+                'user_role': session['role']
+            }
+        )
+        conn.commit()
 
 def get_user_id_by_username(username):
     query = f"SELECT user_id FROM users WHERE username = '{username}'"
@@ -108,8 +127,6 @@ def index():
     
     return render_template('index.html', contracts=contract_data)
 
-
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == "POST":
@@ -119,12 +136,30 @@ def login():
         query = "SELECT * FROM Users WHERE username = ?"
         with engine.connect() as conn:
             user = pd.read_sql_query(query, conn, params=(username,)) 
+            event_info = f"User ( {user.iloc[0]['username']} ) logged in"
+            event_query = text("""
+            INSERT INTO events (event_date, event_time, performed_by, information, created_at)
+            VALUES (:event_date, :event_time, :performed_by, :information, :created_at)
+            """)
+            
+            conn.execute(
+                event_query,
+                {
+                    'event_date': datetime.now().date(),
+                    'event_time': datetime.now().time(),
+                    'performed_by': session.get('username', 'Unknown'),
+                    'information': event_info,
+                    'created_at': datetime.now()
+                }
+            )
+            conn.commit()
 
         if not user.empty:
             stored_password = user.iloc[0]['password']
             if bcrypt.check_password_hash(stored_password, password):
                 session['user_id'] = int(user.iloc[0]['user_id'])  
                 session['role'] = str(user.iloc[0]['role'])  
+                session['username'] = str(user.iloc[0]['username'])  
                 return redirect("/")
 
         return render_template('login.html', message="Invalid Username or password")
@@ -135,7 +170,7 @@ def login():
 
 @app.route('/logout')
 def logout():
-    session.clear() 
+    session.clear()
     return redirect(url_for('login')) 
 
 @app.route('/get_period_of_performance/<contract_id>')
@@ -268,7 +303,6 @@ def update_availability():
             trans = conn.begin()
             try:
                 if action == 'save':
-                    # Insert a new record
                     stmt = text("""
                         INSERT INTO workavailabilityoverride 
                         (employee_id, laborcategory_id, job_id, dateavailable, availablehours, workhourspercentage)
@@ -283,10 +317,15 @@ def update_availability():
                         'work_hours_percentage': work_hours_percentage
                     })
                     trans.commit()
+                    event_info = f"""
+                    Saved the work availability override with this info
+                    (Employee id: {employee_id}, Lab category id: {laborcategory_id}, Available Hours: {available_hours},
+                    Job Id: {job_id}, Date Available: {month}, Work Hour Percentage: {work_hours_percentage})
+                    """
+                    save_events(event_info)
                     message = "New availability record saved successfully."
 
                 elif action == 'remove_override':
-                    # Remove the override by deleting the record
                     delete_stmt = text("""
                         DELETE FROM workavailabilityoverride
                         WHERE employee_id = :employee_id AND dateavailable = :dateavailable
@@ -296,6 +335,11 @@ def update_availability():
                         'dateavailable': month
                     })
                     trans.commit()
+                    event_info = f"""
+                    Deleted the work availability override with this info
+                    (Employee id: {employee_id}, Date Available: {month})
+                    """
+                    save_events(event_info)
                     message = "Override removed successfully."
 
                 else:
@@ -498,6 +542,12 @@ def add_work_availability():
                 'work_hours_percentage': work_hours_percentage
             })
             connection.commit()
+            event_info = f"""
+            Added the work availability with this info
+            (Employee id: {employee_id}, Lab Category ID: {laborcategory_id}, Job ID: {job_id}, Pop ID: {pop_id},
+            Available Hours: {available_hours}, Work Hours Percentage: {work_hours_percentage})
+            """
+            save_events(event_info)
     except Exception as e:
         return jsonify({"status": "error", "message": f"Failed to add record: {str(e)}"}), 500
 
@@ -531,6 +581,11 @@ def update_work_availability(record_id):
 
         print(f"Rows affected: {result.rowcount}")
         connection.commit()
+        event_info = f"""
+        Updated the work availability with this info
+        (Record Id: {record_id}, Available date: {available_date}, Work Percentage: {work_percentage})
+        """
+        save_events(event_info)
         if result.rowcount == 0:
             return jsonify({"status": "error", "message": "Record not found"}), 404
 
@@ -564,6 +619,11 @@ def update_work_availability_override(record_id):
 
             print(f"Rows affected: {result.rowcount}")
             connection.commit()
+            event_info = f"""
+            Updated the work availability Over ride with this info
+            (Record Id: {record_id}, Available hours: {available_hours}, Work Percentage: {work_percentage})
+            """
+            save_events(event_info)
             if result.rowcount == 0:
                 return jsonify({"status": "error", "message": "Record not found"}), 404
 
@@ -632,6 +692,13 @@ def add_employee():
         """
         salary_data['employee_id'] = employee_id
         conn.execute(text(salary_query), salary_data)
+        event_info = f"""
+        Added Employee with this info
+        (Id form jamis: {IdFromJamis}, First Name: {request.form['FirstName']}, Last Name: {request.form['LastName']},
+        Email: {request.form['Email']}, IsTbd: {request.form.get('IsTbd', False)}, Company Id: {request.form['company_id']},
+        Not For TBD: {request.form.get('NoteForTbd', None)})
+        """
+        save_events(event_info)
 
     return redirect('/employees')
 
@@ -658,6 +725,10 @@ def assign_contract():
                     text(insert_query)
                 )
                 conn.commit()
+                event_info = f"""
+                Assigned this manager {manager_id} to this contract {contract_id}
+                """
+                save_events(event_info)
             
                 fetch_query = """
                     SELECT 
@@ -707,6 +778,10 @@ def delete_assignment(assignment_id):
                 WHERE manager_id = :assignment_id
             """
             conn.execute(text(delete_query), {"assignment_id": assignment_id})
+            event_info = f"""
+            Deleted assignment with id {assignment_id}
+            """
+            save_events(event_info)
             conn.commit()
         flash("Assignment deleted successfully!", "success")
     except Exception as e:
@@ -751,10 +826,17 @@ def add_user():
                 password=user_data['password'],
                 role=user_data['role'],
             )
+            event_info = f"""
+            Added the user
+            (First Name: {user_data['first_name']}, Last Name: {user_data['last_name']}, 
+            Username: {user_data['username']}, Role: {user_data['role']})
+            """
+            save_events(event_info)
             if user_data['role'].lower() == "manager":
                 user_id = get_user_id_by_username(user_data['username'])
                 if user_id:
                     save_manager_contract(user_id=user_id)
+            
             return render_template('create_user.html', message=response)
         except Exception as e:
             return render_template('create_user.html', error=f"Error occured in adding user: {e}")
@@ -791,6 +873,12 @@ def generate_file():
     dc_end_year = int(data.get("dc_end_year", 2027))
     file_name = f"Contract_{contract_id}_Combined_spreadsheet.xlsx"
     last_month = data.get("last_month", "08/2024")
+    event_info = f"""
+    Generated new file with this information
+    (Contract ID: {contract_id}, Work Year: {work_year}, 
+    Dc Start Year: {dc_start_year}, Dc End Year: {dc_end_year}, File Name: {file_name}, Last Month: {last_month})
+    """
+    save_events(event_info)
     
     print(f"Passing these parameters to script to generate spreadsheet Contract ID: {contract_id}, Work Year: {work_year}, DC start year: {dc_start_year}, DC end year: {dc_end_year}, File Name: {file_name}, Last Month: {last_month}")
     try:
@@ -833,6 +921,11 @@ def delete_user(user_id):
             delete_user_query = text("DELETE FROM users WHERE user_id = :id")
             conn.execute(delete_user_query, {"id": user_id})
             trans.commit()
+            event_info = f"""
+            Delete the user with this info
+            (User ID: {user_id})
+            """
+            save_events(event_info)
             return jsonify({"status": "success", "message": "User and associated contracts deleted successfully"})
         except Exception as e:
             trans.rollback()
@@ -851,6 +944,11 @@ def update_user(user_id):
         query = text("UPDATE users SET role = :role WHERE user_id = :id")
         conn.execute(query, {"role": new_role, "id": user_id})
         conn.commit()
+        event_info = f"""
+        Updated the user with this info
+        (User ID: {user_id}, Role: {new_role})
+        """
+        save_events(event_info)
     return jsonify({"status": "success", "message": "User role updated successfully"})
 
 
@@ -877,6 +975,11 @@ def update_employee():
                 'employee_id': employee_id,
             })
             conn.commit()
+            event_info = f"""
+            Updated the employee with this info
+            (Employee ID: {employee_id}, Start Date: {start_date}, End Date: {end_date}, Direct Rate: {direct_rate})
+            """
+            save_events(event_info)
 
         return jsonify({'message': 'Employee updated successfully'}), 200
     except Exception as e:
@@ -892,6 +995,11 @@ def delete_employee(employee_id):
         with engine.connect() as conn:
             conn.execute(text(query), {'employee_id': employee_id})
             conn.commit()
+            event_info = f"""
+            Deleted the employee with this info
+            (Employee ID: {employee_id})
+            """
+            save_events(event_info)
         return jsonify({'message': 'Employee deleted successfully'}), 200
     except Exception as e:
         logging.error(f"Error deleting employee: {e}")
